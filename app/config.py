@@ -15,10 +15,10 @@ class Settings(BaseSettings):
     )
 
     app_env: Literal["development", "test", "production"] = "development"
-    bot_token: SecretStr = SecretStr("replace_with_telegram_bot_token")
+    bot_token: SecretStr = SecretStr("8826367314:AAGMdClzpHAMPPPKxZN7MLLt0-V4QCAdFN8")
     superadmin_id: int = Field(default=8686341550, gt=0)
     admin_group_id: int = -1003747381544
-    report_group_id: int = -1001234567891
+    report_group_id: int = -5578176162
     web_app_url: str | None = None
     employee_db_path: str = Field(
         default_factory=lambda: "/tmp/employees.sqlite3"
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
         else "data/employees.sqlite3"
     )
     database_url: SecretStr = SecretStr("sqlite:////tmp/employees.sqlite3")
-    secret_key: SecretStr = SecretStr("a_very_secret_default_key_of_at_least_32_characters_for_sessions")
+    secret_key: SecretStr = SecretStr("E1p0a67LeWqKnKCEZ_S3BWnRFroExrq6sXwhrcU-ETSYYSUDCjn9TB_7xkEaMpSR")
     postgres_password: SecretStr | None = None
     admin_username: str = "admin"
     admin_password: str = "admin123"

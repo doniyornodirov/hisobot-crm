@@ -949,7 +949,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'So\'rovni yuborib bo\'lmadi');
-      showToast('Karta to\'ldirish so\'rovi muvaffaqiyatli yuborildi', 'success');
+      if (data.notification_warning) {
+        showToast(data.notification_warning, 'warning');
+      } else {
+        showToast('Karta to\'ldirish so\'rovi muvaffaqiyatli yuborildi', 'success');
+      }
       document.getElementById('form-submit-card').reset();
       document.getElementById('card-fee-amount').textContent = '0 so\'m';
       await loadDashboard();
@@ -1070,7 +1074,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Hisobotni saqlab bo\'lmadi');
-      showToast('Kunlik hisobot topshirildi!', 'success');
+      if (data.notification_warning) {
+        showToast(data.notification_warning, 'warning');
+      } else {
+        showToast('Kunlik hisobot topshirildi!', 'success');
+      }
       document.getElementById('form-submit-report').reset();
       reportDateInput.value = new Date().toISOString().split('T')[0];
       await loadDashboard();
@@ -1213,7 +1221,11 @@ async function decideItem(category, id, approved, reason = '') {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Qarorni saqlab bo\'lmadi');
     const msg = approved ? 'So\'rov tasdiqlandi ✅' : 'So\'rov rad etildi ❌';
-    showToast(msg, approved ? 'success' : 'info');
+    if (data.notification_warning) {
+      showToast(`${msg} (${data.notification_warning})`, 'warning');
+    } else {
+      showToast(msg, approved ? 'success' : 'info');
+    }
     await loadDashboard();
   } catch (err) {
     showToast(err.message, 'error');

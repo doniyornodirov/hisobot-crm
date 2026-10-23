@@ -1097,5 +1097,13 @@ async def employee_logout(
 
 
 @app.get("/health", tags=["operations"])
-async def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+async def health_check() -> dict[str, object]:
+    import os
+    settings = get_settings()
+    raw_env = os.getenv("BOT_TOKEN") or ""
+    return {
+        "status": "ok",
+        "bot_configured": _is_bot_configured(settings.bot_token.get_secret_value()),
+        "os_env_keys": [k for k in os.environ if any(x in k for x in ["BOT", "ADMIN", "REPORT", "SUPERADMIN"])],
+        "token_len": len(raw_env),
+    }

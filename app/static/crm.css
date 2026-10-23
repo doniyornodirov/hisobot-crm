@@ -341,6 +341,38 @@ select.input-field {
   border: 1px solid rgba(244, 63, 94, 0.3);
 }
 
+.auth-otp-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.btn-telegram-direct {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+.btn-telegram-direct:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+  filter: brightness(1.08);
+}
+
 /* =========================================
    APP LAYOUT (AUTHENTICATED)
    ========================================= */

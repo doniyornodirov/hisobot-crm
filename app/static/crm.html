@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/crm.css?v=20261023-06">
+  <link rel="stylesheet" href="/static/crm.css?v=20261023-07">
 </head>
 <body>
 
@@ -30,96 +30,69 @@
         <p>Moliya, hisobotlar va xodimlar boshqaruvi platformasi</p>
       </div>
 
-      <div class="auth-tabs">
-        <button id="tab-btn-admin" class="auth-tab-btn active" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-          Admin (Boshqaruv)
-        </button>
-        <button id="tab-btn-employee" class="auth-tab-btn" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-          Xodim
-        </button>
-      </div>
+      <div id="auth-error" class="auth-alert error" style="display: none;"></div>
+      <div id="auth-success" class="auth-alert success" style="display: none; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; line-height: 1.4;"></div>
 
-      <div id="auth-error" class="auth-alert error"></div>
+      <!-- Main OTP Login Form -->
+      <form id="otp-login-form" class="auth-form">
+        <div class="form-group" style="text-align: center; margin-bottom: 4px;">
+          <label style="font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px; display: block;">
+            5 xonali tasdiqlash kodini kiriting:
+          </label>
+          <input id="otp-code-input" class="input-field" type="text" inputmode="numeric" maxlength="5"
+                 placeholder="• • • • •" autocomplete="one-time-code" autofocus required
+                 style="font-size: 32px; letter-spacing: 14px; text-align: center; font-weight: 800; font-family: var(--font-mono); padding: 14px; border-radius: 12px; color: #a5b4fc; background: rgba(15, 23, 42, 0.75); border: 2px solid rgba(99, 102, 241, 0.45); box-shadow: 0 0 24px rgba(99, 102, 241, 0.2);">
+          <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 6px;">
+            Kod orqali xodim yoki admin avtomatik aniqlanadi
+          </span>
+        </div>
 
-      <!-- Admin Form -->
-      <form id="admin-login-form" class="auth-form">
-        <div class="form-group">
-          <label>Admin Login / ID</label>
-          <div class="input-with-icon">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            <input name="username" class="input-field" type="text" placeholder="admin yoki Superadmin ID" value="admin" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Parol</label>
-          <div class="input-with-icon">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <input name="password" class="input-field" type="password" placeholder="Parolni kiriting" value="admin123" required>
-          </div>
-        </div>
-        <button type="submit" class="btn-primary">
-          <span>Admin sifatida kirish</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="submit" class="btn-primary" style="padding: 14px; font-size: 15px;">
+          <span>Tizimga kirish</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
         </button>
       </form>
 
-      <!-- Employee Form -->
-      <form id="employee-login-form" class="auth-form" style="display: none;">
-        <div class="form-group">
-          <label>Xodimni tanlang</label>
-          <select id="employee-select-list" name="employee_id" class="input-field">
-            <option value="">Ro'yxatdan xodimni tanlang...</option>
-          </select>
+      <!-- Telegram Bot Help & Direct Request -->
+      <div class="auth-otp-box">
+        <div style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;">
+          <strong>Kodni qanday olish mumkin?</strong><br>
+          Telegram botimizga kiring va <strong>/start</strong> yoki <strong>/login</strong> yuboring, bot sizga 5 xonali kirish kodini yuboradi.
         </div>
-        <div class="form-group">
-          <label>Yoki Telegram ID raqamingiz</label>
-          <div class="input-with-icon">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 10l4 4m0-4l-4 4"/>
-            </svg>
-            <input id="employee-id-input" name="manual_employee_id" class="input-field" type="number" placeholder="Masalan: 12345678">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>PIN kodi (Standart: 1234)</label>
-          <div class="input-with-icon">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <input name="pin" class="input-field" type="password" placeholder="PIN kodni kiriting" value="1234" required>
-          </div>
-        </div>
-        <button type="submit" class="btn-primary">
-          <span>Xodim sifatida kirish</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </button>
-      </form>
 
-      <!-- Quick Demo Access -->
-      <div class="auth-demo-box">
-        <div class="auth-demo-title">Tezkor sinov uchun 1 klikda kirish</div>
-        <div class="auth-demo-btns">
-          <button id="quick-demo-admin" class="btn-demo" type="button">
-            👑 Superadmin (Demo)
+        <a href="https://t.me/Xodimreyting_bot?start=login" target="_blank" class="btn-telegram-direct">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+          </svg>
+          <span>Telegram botdan kod olish (@Xodimreyting_bot)</span>
+        </a>
+
+        <!-- Option to request OTP by ID directly from web page -->
+        <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+          <button id="toggle-request-otp-btn" type="button" class="btn-text-link" style="background: none; border: none; color: #a5b4fc; font-size: 12px; cursor: pointer; text-decoration: underline;">
+            Saytdan turib Telegramga kod yuborish
           </button>
-          <button id="quick-demo-employee" class="btn-demo" type="button">
-            👤 Xodim (Demo)
+          <div id="request-otp-container" style="display: none; margin-top: 10px;">
+            <div style="display: flex; gap: 8px;">
+              <input id="input-request-otp-id" class="input-field" type="text" placeholder="Telegram ID raqamingiz" style="font-size: 13px;">
+              <button id="btn-request-otp-send" class="btn-sm primary" type="button" style="white-space: nowrap; padding: 0 16px;">Yuborish</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Password Login for Admin -->
+        <div style="margin-top: 10px;">
+          <button id="toggle-password-login-btn" type="button" class="btn-text-link" style="background: none; border: none; color: var(--text-dim); font-size: 11px; cursor: pointer;">
+            Parol bilan kirish (Superadmin)
           </button>
+          <form id="admin-password-login-form" style="display: none; margin-top: 10px;" class="auth-form">
+            <div class="form-group">
+              <input id="admin-pass-input" class="input-field" type="password" placeholder="Admin paroli" style="font-size: 13px;">
+            </div>
+            <button type="submit" class="btn-sm secondary" style="width: 100%;">Parol bilan kirish</button>
+          </form>
         </div>
       </div>
     </div>
@@ -823,6 +796,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <script src="/static/crm.js?v=20261023-06" defer></script>
+  <script src="/static/crm.js?v=20261023-07" defer></script>
 </body>
 </html>

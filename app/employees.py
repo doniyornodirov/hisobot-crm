@@ -1,9 +1,10 @@
+import random
 import sqlite3
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -70,6 +71,20 @@ def initialize_database(database_path: str | Path) -> None:
         }
         if "pin" not in columns:
             connection.execute("ALTER TABLE employees ADD COLUMN pin TEXT NOT NULL DEFAULT '1234'")
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS otp_codes (
+                code TEXT PRIMARY KEY,
+                telegram_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                is_used INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
 
 
 def register_employee(
@@ -232,3 +247,97 @@ def verify_employee_pin(
     if str(row["pin"]).strip() != clean_pin:
         return None
     return Employee(telegram_id=row["telegram_id"], bot_name=row["bot_name"], pin=row["pin"])
+
+
+def create_otp_code(
+    database_path: str | Path,
+    telegram_id: int,
+    role: str,
+    name: str,
+    ttl_minutes: int = 5,
+) -> str:
+    now_dt = datetime.now(timezone.utc)
+    created_at = now_dt.isoformat()
+    expires_at = (now_dt + timedelta(minutes=ttl_minutes)).isoformat()
+
+    with _connection(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS otp_codes (
+                code TEXT PRIMARY KEY,
+                telegram_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                is_used INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        # Eski ishlatilmagan kodlarni bekor qilish
+        connection.execute(
+            "UPDATE otp_codes SET is_used = 1 WHERE telegram_id = ? AND is_used = 0",
+            (telegram_id,),
+        )
+        # 5 xonali noyob tasodifiy kod hosil qilish
+        code = f"{random.randint(10000, 99999)}"
+        for _ in range(10):
+            existing = connection.execute(
+                "SELECT 1 FROM otp_codes WHERE code = ? AND is_used = 0", (code,)
+            ).fetchone()
+            if not existing:
+                break
+            code = f"{random.randint(10000, 99999)}"
+
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO otp_codes
+            (code, telegram_id, role, name, created_at, expires_at, is_used)
+            VALUES (?, ?, ?, ?, ?, ?, 0)
+            """,
+            (code, telegram_id, role, name, created_at, expires_at),
+        )
+    return code
+
+
+def verify_and_consume_otp(
+    database_path: str | Path,
+    code: str,
+) -> dict[str, object] | None:
+    clean_code = str(code).strip()
+    if not clean_code:
+        return None
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with _connection(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS otp_codes (
+                code TEXT PRIMARY KEY,
+                telegram_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                is_used INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        row = connection.execute(
+            """
+            SELECT code, telegram_id, role, name, expires_at, is_used
+            FROM otp_codes
+            WHERE code = ? AND is_used = 0
+            """,
+            (clean_code,),
+        ).fetchone()
+        if row is None:
+            return None
+        if str(row["expires_at"]) < now_iso:
+            return None
+        # Bir martalik kod - ishlatilgan deb belgilash
+        connection.execute("UPDATE otp_codes SET is_used = 1 WHERE code = ?", (clean_code,))
+        return {
+            "telegram_id": int(row["telegram_id"]),
+            "role": str(row["role"]),
+            "name": str(row["name"]),
+        }

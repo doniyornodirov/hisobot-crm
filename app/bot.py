@@ -9,14 +9,16 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    KeyboardButton,
     MenuButtonDefault,
     MenuButtonWebApp,
     Message,
+    ReplyKeyboardMarkup,
     WebAppInfo,
 )
 
 from app.config import get_settings
-from app.employees import get_active_employee, initialize_database
+from app.employees import create_otp_code, get_active_employee, initialize_database
 from app.workflows import (
     card_request,
     initialize_workflows,
@@ -215,60 +217,60 @@ async def card_request_decision(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer("Qaror saqlandi.")
 
 
-async def start_command(message: Message) -> None:
+async def send_login_otp_message(message: Message) -> None:
     user = message.from_user
     if user is None or message.chat.type != "private":
         return
 
     settings = get_settings()
-    if user.id == settings.superadmin_id:
-        if settings.web_app_url:
-            admin_panel_url = settings.web_app_url.removesuffix("/employee") + "/"
-            menu_button = MenuButtonWebApp(
-                text="Admin panel",
-                web_app=WebAppInfo(url=admin_panel_url),
-            )
-        else:
-            menu_button = MenuButtonDefault()
-        await message.bot.set_chat_menu_button(
-            chat_id=user.id,
-            menu_button=menu_button,
-        )
+    is_admin = user.id == settings.superadmin_id
+    employee = None if is_admin else get_active_employee(settings.employee_db_path, user.id)
+
+    if not is_admin and employee is None:
         await message.answer(
-            "Assalomu alaykum, superadmin. Admin panelni chat pastidagi "
-            "\"Admin panel\" tugmasidan oching."
+            f"❌ <b>Siz tizimda ro'yxatdan o'tmagansiz.</b>\n\n"
+            f"Ro'yxatdan o'tish uchun Telegram ID raqamingizni superadminga yuboring:\n"
+            f"<code>{user.id}</code>\n\n"
+            f"Superadmin sizni CRM web-panelda ro'yxatdan o'tkazgach, qayta /start yuboring.",
+            parse_mode="HTML",
         )
         return
 
-    employee = get_active_employee(settings.employee_db_path, user.id)
-    if employee is None:
-        await message.bot.set_chat_menu_button(
-            chat_id=user.id,
-            menu_button=MenuButtonDefault(),
-        )
-        await message.answer(
-            "Ro'yxatdan o'tish uchun Telegram ID raqamingizni superadminga yuboring:\n"
-            f"{user.id}\n\n"
-            "Superadmin sizni web-panelda ro'yxatdan o'tkazgach, qayta /start yuboring."
-        )
-        return
+    role = "admin" if is_admin else "employee"
+    name = "Superadmin" if is_admin else employee.bot_name
 
-    if settings.web_app_url:
-        menu_button = MenuButtonWebApp(
-            text="Hisobot",
-            web_app=WebAppInfo(url=settings.web_app_url),
-        )
-    else:
-        menu_button = MenuButtonDefault()
-    await message.bot.set_chat_menu_button(
-        chat_id=user.id,
-        menu_button=menu_button,
+    code = create_otp_code(settings.employee_db_path, user.id, role, name)
+
+    crm_url = "https://hisobot-crm.vercel.app/"
+    inline_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Hisobot CRM saytini ochish", url=crm_url)]
+        ]
+    )
+    reply_kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="🔑 Yangi kirish kodi olish")]],
+        resize_keyboard=True,
     )
 
+    role_title = "👑 Superadmin" if is_admin else f"👤 Xodim: {name}"
     await message.answer(
-        f"Assalomu alaykum, {employee.bot_name}! Siz ro'yxatdan o'tgansiz.\n"
-        "Hisobot va boshqa ishlar chat pastidagi \"Hisobot\" tugmasida."
+        f"🔐 <b>Hisobot CRM tizimiga kirish kodingiz:</b>\n\n"
+        f"👉 <code>{code}</code> 👈\n\n"
+        f"👤 <b>Foydalanuvchi:</b> {role_title}\n"
+        f"⏱ <i>Ushbu 5 xonali kod 5 daqiqa davomida amal qiladi.</i>\n\n"
+        f"Saytga kiring va ushbu kodni kiriting.",
+        reply_markup=inline_kb,
+        parse_mode="HTML",
     )
+
+
+def setup_bot_handlers(dp: Dispatcher) -> None:
+    dp.message.register(send_login_otp_message, CommandStart())
+    dp.message.register(
+        send_login_otp_message,
+        F.text.in_({"/login", "/kod", "/code", "🔑 Yangi kirish kodi olish", "kod", "login"}),
+    )
+    dp.callback_query.register(card_request_decision, F.data.startswith("card:"))
 
 
 async def main() -> None:
@@ -276,8 +278,7 @@ async def main() -> None:
     initialize_database(settings.employee_db_path)
     initialize_workflows(settings.employee_db_path)
     dispatcher = Dispatcher()
-    dispatcher.message.register(start_command, CommandStart())
-    dispatcher.callback_query.register(card_request_decision, F.data.startswith("card:"))
+    setup_bot_handlers(dispatcher)
 
     async with Bot(token=settings.bot_token.get_secret_value()) as bot:
         logger.info("Starting Telegram bot polling (superadmin ID: %s)", settings.superadmin_id)

@@ -210,15 +210,17 @@ async function loadEmployeeSelectList() {
     const employees = await res.json();
     state.employees = employees;
 
-    // Populate login dropdown
+    // Populate login dropdown if exists
     const selectLogin = document.getElementById('employee-select-list');
-    selectLogin.innerHTML = '<option value="">Ro\'yxatdan xodimni tanlang...</option>';
-    employees.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp.telegram_id;
-      opt.textContent = `${emp.bot_name} (ID: ${emp.telegram_id})`;
-      selectLogin.appendChild(opt);
-    });
+    if (selectLogin) {
+      selectLogin.innerHTML = '<option value="">Ro\'yxatdan xodimni tanlang...</option>';
+      employees.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.telegram_id;
+        opt.textContent = `${emp.bot_name} (ID: ${emp.telegram_id})`;
+        selectLogin.appendChild(opt);
+      });
+    }
 
     // Populate debt employee select
     const selectDebt = document.getElementById('debt-employee-select');
@@ -834,119 +836,175 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Auth Switcher Tabs
-  const tabAdmin = document.getElementById('tab-btn-admin');
-  const tabEmp = document.getElementById('tab-btn-employee');
-  const formAdmin = document.getElementById('admin-login-form');
-  const formEmp = document.getElementById('employee-login-form');
+  // 5-digit Telegram OTP Login Handlers
+  const otpForm = document.getElementById('otp-login-form');
+  const otpInput = document.getElementById('otp-code-input');
+  const authErr = document.getElementById('auth-error');
+  const authSuccess = document.getElementById('auth-success');
 
-  tabAdmin.addEventListener('click', () => {
-    tabAdmin.classList.add('active');
-    tabEmp.classList.remove('active');
-    formAdmin.style.display = 'flex';
-    formEmp.style.display = 'none';
-    document.getElementById('auth-error').style.display = 'none';
-  });
+  function clearAuthAlerts() {
+    if (authErr) {
+      authErr.style.display = 'none';
+      authErr.textContent = '';
+    }
+    if (authSuccess) {
+      authSuccess.style.display = 'none';
+      authSuccess.textContent = '';
+    }
+  }
 
-  tabEmp.addEventListener('click', () => {
-    tabEmp.classList.add('active');
-    tabAdmin.classList.remove('active');
-    formEmp.style.display = 'flex';
-    formAdmin.style.display = 'none';
-    document.getElementById('auth-error').style.display = 'none';
-  });
+  let isSubmittingOtp = false;
+  async function submitOtpLogin(code) {
+    if (isSubmittingOtp) return;
+    clearAuthAlerts();
+    const cleanCode = (code || '').trim();
+    if (!cleanCode || cleanCode.length !== 5) {
+      if (authErr) {
+        authErr.textContent = 'Iltimos, botdan kelgan 5 xonali kodni to\'liq kiriting';
+        authErr.style.display = 'block';
+      }
+      return;
+    }
 
-  // Quick Demo Buttons
-  document.getElementById('quick-demo-admin').addEventListener('click', async () => {
+    isSubmittingOtp = true;
     try {
-      const res = await fetch('/crm/api/login', {
+      const res = await fetch('/crm/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ role: 'admin', username: 'admin', password: 'admin123' })
+        body: JSON.stringify({ code: cleanCode })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Kirish amalga oshmadi');
-      showToast('Superadmin sifatida kirdingiz', 'success');
-      await checkAuth();
-    } catch (err) {
-      document.getElementById('auth-error').textContent = err.message;
-      document.getElementById('auth-error').style.display = 'block';
-    }
-  });
+      if (!res.ok) {
+        throw new Error(data.detail || 'Kod noto\'g\'ri yoki muddati o\'tgan');
+      }
 
-  document.getElementById('quick-demo-employee').addEventListener('click', async () => {
-    try {
-      if (!state.employees.length) await loadEmployeeSelectList();
-      const firstEmp = state.employees[0];
-      if (!firstEmp) throw new Error('Hozircha tizimda xodimlar yo\'q. Avval admin sifatida kiring.');
-      const res = await fetch('/crm/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ role: 'employee', employee_id: firstEmp.telegram_id, pin: '1234' })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Kirish amalga oshmadi');
-      showToast(`${firstEmp.bot_name} sifatida kirdingiz`, 'success');
+      showToast(`Xush kelibsiz, ${data.user?.name || ''}! (${data.role === 'admin' ? 'Superadmin' : 'Xodim'})`, 'success');
       await checkAuth();
     } catch (err) {
-      document.getElementById('auth-error').textContent = err.message;
-      document.getElementById('auth-error').style.display = 'block';
+      if (authErr) {
+        authErr.textContent = err.message;
+        authErr.style.display = 'block';
+      }
+      if (otpInput) {
+        otpInput.value = '';
+        otpInput.focus();
+      }
+    } finally {
+      isSubmittingOtp = false;
     }
-  });
+  }
 
-  // Admin Login Form Submit
-  formAdmin.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(formAdmin);
-    try {
-      const res = await fetch('/crm/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          role: 'admin',
-          username: fd.get('username'),
-          password: fd.get('password')
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Login yoki parol noto\'g\'ri');
-      showToast('Superadmin sifatida tasdiqlandingiz', 'success');
-      await checkAuth();
-    } catch (err) {
-      document.getElementById('auth-error').textContent = err.message;
-      document.getElementById('auth-error').style.display = 'block';
-    }
-  });
+  if (otpForm && otpInput) {
+    otpForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitOtpLogin(otpInput.value);
+    });
 
-  // Employee Login Form Submit
-  formEmp.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(formEmp);
-    const empId = fd.get('employee_id') || fd.get('manual_employee_id');
-    const pin = fd.get('pin');
-    try {
-      const res = await fetch('/crm/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          role: 'employee',
-          employee_id: Number(empId),
-          pin: pin
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Xodim ID yoki PIN noto\'g\'ri');
-      showToast('Xodim sifatida tizimga kirdingiz', 'success');
-      await checkAuth();
-    } catch (err) {
-      document.getElementById('auth-error').textContent = err.message;
-      document.getElementById('auth-error').style.display = 'block';
-    }
-  });
+    otpInput.addEventListener('input', (e) => {
+      // Allow only numbers, max 5 digits
+      const cleaned = e.target.value.replace(/\D/g, '').slice(0, 5);
+      e.target.value = cleaned;
+      if (cleaned.length === 5) {
+        submitOtpLogin(cleaned);
+      }
+    });
+  }
+
+  // Request OTP by Telegram ID directly from webpage
+  const toggleReqBtn = document.getElementById('toggle-request-otp-btn');
+  const reqOtpContainer = document.getElementById('request-otp-container');
+  const inputReqId = document.getElementById('input-request-otp-id');
+  const btnReqSend = document.getElementById('btn-request-otp-send');
+
+  if (toggleReqBtn && reqOtpContainer) {
+    toggleReqBtn.addEventListener('click', () => {
+      const isHidden = reqOtpContainer.style.display === 'none' || !reqOtpContainer.style.display;
+      reqOtpContainer.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && inputReqId) inputReqId.focus();
+    });
+  }
+
+  if (btnReqSend && inputReqId) {
+    btnReqSend.addEventListener('click', async () => {
+      clearAuthAlerts();
+      const idVal = inputReqId.value.trim();
+      if (!idVal) {
+        if (authErr) {
+          authErr.textContent = 'Telegram ID raqamingizni kiriting';
+          authErr.style.display = 'block';
+        }
+        return;
+      }
+
+      btnReqSend.disabled = true;
+      btnReqSend.textContent = 'Yuborilmoqda...';
+
+      try {
+        const res = await fetch('/crm/api/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: idVal })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Kod yuborib bo\'lmadi');
+
+        if (authSuccess) {
+          authSuccess.textContent = data.message || 'Kod Telegramingizga yuborildi!';
+          authSuccess.style.display = 'block';
+        }
+        if (otpInput) {
+          otpInput.focus();
+        }
+      } catch (err) {
+        if (authErr) {
+          authErr.textContent = err.message;
+          authErr.style.display = 'block';
+        }
+      } finally {
+        btnReqSend.disabled = false;
+        btnReqSend.textContent = 'Yuborish';
+      }
+    });
+  }
+
+  // Emergency Password Login for Admin
+  const togglePassBtn = document.getElementById('toggle-password-login-btn');
+  const adminPassForm = document.getElementById('admin-password-login-form');
+  const adminPassInput = document.getElementById('admin-pass-input');
+
+  if (togglePassBtn && adminPassForm) {
+    togglePassBtn.addEventListener('click', () => {
+      const isHidden = adminPassForm.style.display === 'none' || !adminPassForm.style.display;
+      adminPassForm.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && adminPassInput) adminPassInput.focus();
+    });
+  }
+
+  if (adminPassForm) {
+    adminPassForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthAlerts();
+      const pass = adminPassInput ? adminPassInput.value : '';
+      try {
+        const res = await fetch('/crm/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ role: 'admin', username: 'admin', password: pass })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Admin paroli noto\'g\'ri');
+        showToast('Superadmin sifatida kirdingiz', 'success');
+        await checkAuth();
+      } catch (err) {
+        if (authErr) {
+          authErr.textContent = err.message;
+          authErr.style.display = 'block';
+        }
+      }
+    });
+  }
 
   // Logout
   document.getElementById('btn-logout').addEventListener('click', async () => {

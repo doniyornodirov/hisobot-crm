@@ -23,20 +23,22 @@ from app.bot import (
     card_notification_text,
     card_request_decision,
     report_notification_text,
-    start_command,
+    setup_bot_handlers,
 )
 
 bot_dispatcher = Dispatcher()
-bot_dispatcher.message.register(start_command, CommandStart())
-bot_dispatcher.callback_query.register(card_request_decision, F.data.startswith("card:"))
+setup_bot_handlers(bot_dispatcher)
+
 from app.employees import (
     Employee,
+    create_otp_code,
     dismiss_employee,
     get_active_employee,
     initialize_database,
     list_active_employees,
     register_employee,
     update_employee_pin,
+    verify_and_consume_otp,
     verify_employee_pin,
 )
 from app.telegram_auth import (
@@ -146,6 +148,14 @@ class WebLoginRequest(BaseModel):
     password: str | None = None
     employee_id: int | None = None
     pin: str | None = None
+
+
+class OtpVerifyRequest(BaseModel):
+    code: str
+
+
+class OtpSendRequest(BaseModel):
+    identifier: str
 
 
 class EmployeePinUpdate(BaseModel):
@@ -834,6 +844,121 @@ async def crm_employees_list() -> list[dict[str, object]]:
         {"telegram_id": emp.telegram_id, "bot_name": emp.bot_name}
         for emp in list_active_employees(settings.employee_db_path)
     ]
+
+
+@app.post("/crm/api/otp/verify")
+async def crm_otp_verify(
+    payload: OtpVerifyRequest,
+    response: Response,
+) -> dict[str, object]:
+    settings = get_settings()
+    code = payload.code.strip()
+    if not code:
+        raise HTTPException(status_code=422, detail="Kodni kiriting")
+
+    user_info = verify_and_consume_otp(settings.employee_db_path, code)
+    if not user_info:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Yaroqsiz yoki muddati o'tgan kod. Botdan yangi kod oling.",
+        )
+
+    role = str(user_info["role"])
+    telegram_id = int(user_info["telegram_id"])
+    name = str(user_info["name"])
+
+    cookie_val = create_employee_session(
+        telegram_id,
+        settings.secret_key.get_secret_value(),
+    )
+    cookie_key = "admin_session" if role == "admin" else "employee_session"
+
+    response.set_cookie(
+        key=cookie_key,
+        value=cookie_val,
+        max_age=43_200,
+        httponly=True,
+        secure=settings.app_env == "production",
+        samesite="lax",
+        path="/",
+    )
+    return {
+        "status": "authenticated",
+        "role": role,
+        "user": {
+            "id": telegram_id,
+            "name": name,
+            "role": role,
+        },
+    }
+
+
+@app.post("/crm/api/otp/request")
+async def crm_otp_request(payload: OtpSendRequest) -> dict[str, object]:
+    settings = get_settings()
+    raw = payload.identifier.strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Telegram ID yoki ismingizni kiriting")
+
+    user_id = None
+    role = None
+    name = None
+
+    if raw.isdigit() and int(raw) == settings.superadmin_id:
+        user_id = settings.superadmin_id
+        role = "admin"
+        name = "Superadmin"
+    elif raw.lower() == "admin":
+        user_id = settings.superadmin_id
+        role = "admin"
+        name = "Superadmin"
+    else:
+        emps = list_active_employees(settings.employee_db_path)
+        for emp in emps:
+            if raw.isdigit() and emp.telegram_id == int(raw):
+                user_id = emp.telegram_id
+                role = "employee"
+                name = emp.bot_name
+                break
+            elif emp.bot_name.lower() == raw.lower():
+                user_id = emp.telegram_id
+                role = "employee"
+                name = emp.bot_name
+                break
+
+    if not user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Bunday foydalanuvchi topilmadi. Avval Telegram botda (@Xodimreyting_bot) /start bosing.",
+        )
+
+    code = create_otp_code(settings.employee_db_path, user_id, role, name)
+
+    token = settings.bot_token.get_secret_value().strip()
+    if _is_bot_configured(token):
+        try:
+            async with Bot(token=token) as bot:
+                role_label = "👑 Superadmin" if role == "admin" else f"👤 Xodim: {name}"
+                text = (
+                    f"🔐 <b>Hisobot CRM tizimiga kirish kodingiz:</b>\n\n"
+                    f"👉 <code>{code}</code> 👈\n\n"
+                    f"👤 <b>Foydalanuvchi:</b> {role_label}\n"
+                    f"⏱ <i>Ushbu 5 xonali kod 5 daqiqa davomida amal qiladi.</i>\n\n"
+                    f"Uni saytda kiritib tizimga kiring."
+                )
+                await bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
+        except Exception as e:
+            logger.exception("Telegramga OTP xabarini yuborishda xatolik: %s", e)
+            raise HTTPException(
+                status_code=500,
+                detail="Telegram bot orqali xabar yuborib bo'lmadi. Avval botimizda (@Xodimreyting_bot) /start bosganingizga ishonch hosil qiling.",
+            )
+
+    return {
+        "success": True,
+        "message": "5 xonali tasdiqlash kodi Telegramingizga yuborildi!",
+        "role": role,
+    }
 
 
 @app.post("/crm/api/login")

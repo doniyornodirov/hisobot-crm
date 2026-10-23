@@ -70,6 +70,24 @@ function getEmployeeDisplayName(item) {
   return '-';
 }
 
+// Hisobot bo'yicha jami topshirilishi kerak bo'lgan summani hisoblash:
+// (Paynet + Karta(+3%) + Poshlina/Levy + Qarz to'lovi) - (Terminal + Berildi + Kunlik + Skidka + Xarajat)
+function calculateReportTotal(report) {
+  if (!report) return 0;
+  const paynet = Number(report.paynet) || 0;
+  const cardTotal = Number(report.card_total != null ? report.card_total : report.card_total_with_fee) || 0;
+  const levy = Number(report.levy) || 0;
+  const debtPayment = Number(report.debt_payment) || 0;
+
+  const terminal = Number(report.terminal) || 0;
+  const givingTotal = Number(report.giving_total != null ? report.giving_total : report.approved_giving_total) || 0;
+  const daily = Number(report.daily) || 0;
+  const discount = Number(report.discount) || 0;
+  const expense = Number(report.expense) || 0;
+
+  return (paynet + cardTotal + levy + debtPayment) - (terminal + givingTotal + daily + discount + expense);
+}
+
 // Live Clock in Tashkent time (UTC+5)
 function startLiveClock() {
   const el = document.getElementById('live-clock');
@@ -331,10 +349,7 @@ function renderDashboardPendingOverview() {
 
   (d.reports || []).forEach(r => {
     if (r.status === 'pending') {
-      const total = (
-        Number(r.paynet) + Number(r.card_total) + Number(r.levy) + Number(r.daily)
-        - Number(r.terminal) - Number(r.giving_total) - Number(r.discount) - Number(r.expense) + Number(r.debt_payment)
-      );
+      const total = calculateReportTotal(r);
       pendingItems.push({
         type: 'Kunlik hisobot',
         icon: '📋',
@@ -510,10 +525,7 @@ function renderReportsTable() {
 
   reports.forEach(report => {
     const tr = document.createElement('tr');
-    const total = (
-      Number(report.paynet) + Number(report.card_total) + Number(report.levy) + Number(report.daily)
-      - Number(report.terminal) - Number(report.giving_total) - Number(report.discount) - Number(report.expense) + Number(report.debt_payment)
-    );
+    const total = calculateReportTotal(report);
     const isPending = report.status === 'pending';
 
     let statusBadge = '<span class="badge badge-pending">⏳ Kutilmoqda</span>';
@@ -1104,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardTotal = state.dashboard ? (state.dashboard.card_total_with_fee || 0) : 0;
     const givingTotal = state.dashboard ? (state.dashboard.approved_giving_total || 0) : 0;
 
-    const total = paynet + cardTotal + levy + daily + debtPayment - (terminal + givingTotal + discount + expense);
+    const total = (paynet + cardTotal + levy + debtPayment) - (terminal + givingTotal + daily + discount + expense);
     document.getElementById('report-total-calculated').textContent = formatMoney(total);
   }
 

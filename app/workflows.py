@@ -737,8 +737,8 @@ def rating_boards(database_path: str | Path) -> dict[str, list[dict[str, object]
                 ) givings ON givings.employee_id = e.telegram_id
                 LEFT JOIN (
                     SELECT employee_id,
-                           SUM(paynet + card_total + levy + daily - terminal
-                               - giving_total - discount - expense + debt_payment) AS total
+                           SUM(paynet + card_total + levy + debt_payment
+                               - terminal - giving_total - daily - discount - expense) AS total
                     FROM reports
                     WHERE status = 'approved' {date_filter}
                     GROUP BY employee_id

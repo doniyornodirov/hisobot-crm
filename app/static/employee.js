@@ -15,9 +15,8 @@ function money(value) {
 }
 
 function submissionTotal(report) {
-  return report.paynet + report.card_total + report.levy + report.daily
-    - report.terminal - report.giving_total - report.discount - report.expense
-    + report.debt_payment;
+  return report.paynet + report.card_total + report.levy + (report.debt_payment || 0)
+    - report.terminal - report.giving_total - report.daily - report.discount - report.expense;
 }
 
 function reportFields(report) {

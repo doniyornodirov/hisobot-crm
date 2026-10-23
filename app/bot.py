@@ -63,12 +63,12 @@ def report_notification_text(report: dict[str, object]) -> str:
         int(report["paynet"])
         + int(report["card_total"])
         + int(report["levy"])
-        + int(report["daily"])
+        + int(report["debt_payment"])
         - int(report["terminal"])
         - int(report["giving_total"])
+        - int(report["daily"])
         - int(report["discount"])
         - int(report["expense"])
-        + int(report["debt_payment"])
     )
     employee_name = report.get("bot_name") or report["employee_id"]
     lines = [

@@ -809,7 +809,11 @@ signIn().catch(() => {
 @app.get("/", include_in_schema=False)
 @app.get("/crm", include_in_schema=False)
 async def crm_static_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "crm.html")
+    response = FileResponse(STATIC_DIR / "crm.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.get("/admin", include_in_schema=False)

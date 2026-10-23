@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/crm.css?v=20261023-02">
+  <link rel="stylesheet" href="/static/crm.css?v=20261023-05">
 </head>
 <body>
 
@@ -546,8 +546,13 @@
               </div>
 
               <div class="report-summary-box">
-                <span>📦 JAMI TOPSHIRILISHI KERAK:</span>
-                <strong id="report-total-calculated">0 so'm</strong>
+                <div>
+                  <span style="font-weight: 600;">📦 JAMI TOPSHIRILISHI KERAK:</span>
+                  <div id="report-breakdown-text" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    Tushum: 0 so'm · Chiqim (ayriladi): 0 so'm
+                  </div>
+                </div>
+                <strong id="report-total-calculated" style="font-size: 22px; color: #a5b4fc;">0 so'm</strong>
               </div>
 
               <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">Hisobotni yuborish</button>
@@ -818,6 +823,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <script src="/static/crm.js?v=20261023-01" defer></script>
+  <script src="/static/crm.js?v=20261023-05" defer></script>
 </body>
 </html>

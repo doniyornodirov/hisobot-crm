@@ -88,6 +88,37 @@ function calculateReportTotal(report) {
   return (paynet + cardTotal + levy + debtPayment) - (terminal + givingTotal + daily + discount + expense);
 }
 
+// Xodim hisobot formasi summasini real vaqtda qayta hisoblash
+function recalculateReportTotal() {
+  function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? (Number(cleanDigits(el.value)) || 0) : 0;
+  }
+
+  const paynet = getVal('input-report-paynet');
+  const levy = getVal('input-report-levy');
+  const debtPayment = getVal('input-report-debt-payment');
+  const terminal = getVal('input-report-terminal');
+  const daily = getVal('input-report-daily');
+  const discount = getVal('input-report-discount');
+  const expense = getVal('input-report-expense');
+
+  const cardTotal = state.dashboard ? (state.dashboard.card_total_with_fee || 0) : 0;
+  const givingTotal = state.dashboard ? (state.dashboard.approved_giving_total || 0) : 0;
+
+  const income = paynet + cardTotal + levy + debtPayment;
+  const subtractions = terminal + givingTotal + daily + discount + expense;
+  const total = income - subtractions;
+
+  const totalEl = document.getElementById('report-total-calculated');
+  if (totalEl) totalEl.textContent = formatMoney(total);
+
+  const bdEl = document.getElementById('report-breakdown-text');
+  if (bdEl) {
+    bdEl.textContent = `Tushum: ${formatMoney(income)} · Chiqim (ayriladi): ${formatMoney(subtractions)}`;
+  }
+}
+
 // Live Clock in Tashkent time (UTC+5)
 function startLiveClock() {
   const el = document.getElementById('live-clock');
@@ -288,6 +319,7 @@ function renderKPIs() {
     if (inputGivingAuto) inputGivingAuto.value = formatMoney(d.approved_giving_total || 0);
     const inputDebtAuto = document.getElementById('input-report-debt-balance-auto');
     if (inputDebtAuto) inputDebtAuto.value = formatMoney(d.debt_balance || 0);
+    recalculateReportTotal();
 
     const pendingCards = (d.cards || []).filter(c => c.status === 'pending').length;
     const pendingGivings = (d.givings || []).filter(g => g.status === 'pending').length;
@@ -1093,32 +1125,14 @@ document.addEventListener('DOMContentLoaded', () => {
   reportNumericFields.forEach(id => {
     const input = document.getElementById(id);
     if (!input) return;
-    input.addEventListener('input', (e) => {
-      const raw = cleanDigits(e.target.value);
-      e.target.value = raw ? Number(raw).toLocaleString('ru-RU').replace(/,/g, ' ') : '';
-      recalculateReportTotal();
+    ['input', 'change', 'keyup'].forEach(ev => {
+      input.addEventListener(ev, (e) => {
+        const raw = cleanDigits(e.target.value);
+        e.target.value = raw ? Number(raw).toLocaleString('ru-RU').replace(/,/g, ' ') : '';
+        recalculateReportTotal();
+      });
     });
   });
-
-  function recalculateReportTotal() {
-    function getVal(id) {
-      return Number(cleanDigits(document.getElementById(id).value)) || 0;
-    }
-
-    const paynet = getVal('input-report-paynet');
-    const levy = getVal('input-report-levy');
-    const debtPayment = getVal('input-report-debt-payment');
-    const terminal = getVal('input-report-terminal');
-    const daily = getVal('input-report-daily');
-    const discount = getVal('input-report-discount');
-    const expense = getVal('input-report-expense');
-
-    const cardTotal = state.dashboard ? (state.dashboard.card_total_with_fee || 0) : 0;
-    const givingTotal = state.dashboard ? (state.dashboard.approved_giving_total || 0) : 0;
-
-    const total = (paynet + cardTotal + levy + debtPayment) - (terminal + givingTotal + daily + discount + expense);
-    document.getElementById('report-total-calculated').textContent = formatMoney(total);
-  }
 
   // Submit Daily Report
   document.getElementById('form-submit-report').addEventListener('submit', async (e) => {

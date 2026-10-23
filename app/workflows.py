@@ -630,20 +630,29 @@ def employee_dashboard(
         debt = _current_debt(connection, employee_id)
         cards = _records(
             connection,
-            """SELECT id, card_number, cardholder, amount, work_date, status, decision_reason, created_at, decided_at,
-                      CASE WHEN status = 'approved' THEN card_total_with_fee(amount) ELSE NULL END AS total_with_fee
-               FROM card_requests WHERE employee_id = ? ORDER BY id DESC""",
+            """SELECT c.id, c.employee_id, COALESCE(e.bot_name, '') AS bot_name, c.card_number, c.cardholder, c.amount,
+                      c.work_date, c.status, c.decision_reason, c.created_at, c.decided_at,
+                      CASE WHEN c.status = 'approved' THEN card_total_with_fee(c.amount) ELSE NULL END AS total_with_fee
+               FROM card_requests c
+               LEFT JOIN employees e ON e.telegram_id = c.employee_id
+               WHERE c.employee_id = ? ORDER BY c.id DESC""",
             employee_id,
         )
         givings = _records(
             connection,
-            """SELECT id, amount, note, work_date, status, decision_reason, created_at, decided_at
-               FROM money_givings WHERE employee_id = ? ORDER BY id DESC""",
+            """SELECT g.id, g.employee_id, COALESCE(e.bot_name, '') AS bot_name, g.amount, g.note,
+                      g.work_date, g.status, g.decision_reason, g.created_at, g.decided_at
+               FROM money_givings g
+               LEFT JOIN employees e ON e.telegram_id = g.employee_id
+               WHERE g.employee_id = ? ORDER BY g.id DESC""",
             employee_id,
         )
         reports = _records(
             connection,
-            """SELECT * FROM reports WHERE employee_id = ? ORDER BY work_date DESC, id DESC""",
+            """SELECT r.*, COALESCE(e.bot_name, '') AS bot_name
+               FROM reports r
+               LEFT JOIN employees e ON e.telegram_id = r.employee_id
+               WHERE r.employee_id = ? ORDER BY r.work_date DESC, r.id DESC""",
             employee_id,
         )
         debts = _records(

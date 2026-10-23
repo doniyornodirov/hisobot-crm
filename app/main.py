@@ -1034,6 +1034,22 @@ async def crm_dashboard_data(
     elif role == "employee":
         emp_id = int(user_info["user"]["id"])
         data = employee_dashboard(settings.employee_db_path, emp_id, work_date)
+        emp_name = user_info["user"].get("name") or "Xodim"
+        for card in data.get("cards", []):
+            if not card.get("bot_name"):
+                card["bot_name"] = emp_name
+            if not card.get("employee_id"):
+                card["employee_id"] = emp_id
+        for giving in data.get("givings", []):
+            if not giving.get("bot_name"):
+                giving["bot_name"] = emp_name
+            if not giving.get("employee_id"):
+                giving["employee_id"] = emp_id
+        for report in data.get("reports", []):
+            if not report.get("bot_name"):
+                report["bot_name"] = emp_name
+            if not report.get("employee_id"):
+                report["employee_id"] = emp_id
         return {"role": "employee", "data": data}
 
     raise HTTPException(status_code=403, detail="Ruxsat berilmagan")

@@ -55,6 +55,21 @@ async function parseJsonResponse(res) {
   }
 }
 
+// Xodim ismini xavfsiz aniqlash yordamchi funksiyasi
+function getEmployeeDisplayName(item) {
+  if (!item) return '-';
+  if (item.bot_name && item.bot_name.trim()) return item.bot_name;
+  if (item.employee_name && item.employee_name.trim()) return item.employee_name;
+  if (item.employee_id) {
+    const emp = (state.employees || []).find(e => String(e.telegram_id) === String(item.employee_id));
+    if (emp && emp.bot_name) return emp.bot_name;
+    return String(item.employee_id);
+  }
+  if (state.user && state.user.user && state.user.user.name) return state.user.user.name;
+  if (state.user && state.user.name) return state.user.name;
+  return '-';
+}
+
 // Live Clock in Tashkent time (UTC+5)
 function startLiveClock() {
   const el = document.getElementById('live-clock');
@@ -290,7 +305,7 @@ function renderDashboardPendingOverview() {
         type: 'Karta so\'rovi',
         icon: '💳',
         id: c.id,
-        employee: c.bot_name || c.employee_id,
+        employee: getEmployeeDisplayName(c),
         details: `${c.card_number} (${c.cardholder})`,
         amount: calculateCardFee(c.amount),
         raw: c,
@@ -305,7 +320,7 @@ function renderDashboardPendingOverview() {
         type: 'Pul topshirish',
         icon: '💵',
         id: g.id,
-        employee: g.bot_name || g.employee_id,
+        employee: getEmployeeDisplayName(g),
         details: g.note || 'Izohsiz',
         amount: g.amount,
         raw: g,
@@ -324,7 +339,7 @@ function renderDashboardPendingOverview() {
         type: 'Kunlik hisobot',
         icon: '📋',
         id: r.id,
-        employee: r.bot_name || r.employee_id,
+        employee: getEmployeeDisplayName(r),
         details: `Sana: ${r.work_date}`,
         amount: total,
         raw: r,
@@ -409,7 +424,7 @@ function renderCardsTable() {
     tr.innerHTML = `
       <td>#${card.id}</td>
       <td style="font-size: 12px; color: var(--text-muted);">${dateFormatted}</td>
-      <td><strong>${card.bot_name || card.employee_id}</strong></td>
+      <td><strong>${getEmployeeDisplayName(card)}</strong></td>
       <td>
         <span style="font-family: var(--font-mono);">${card.card_number}</span>
         <button class="copy-btn" title="Karta raqamidan nusxa olish" onclick="copyToClipboard('${card.card_number}')">📋</button>
@@ -463,7 +478,7 @@ function renderGivingsTable() {
     tr.innerHTML = `
       <td>#${giving.id}</td>
       <td>${giving.work_date}</td>
-      <td><strong>${giving.bot_name || giving.employee_id}</strong></td>
+      <td><strong>${getEmployeeDisplayName(giving)}</strong></td>
       <td><strong>${formatMoney(giving.amount)}</strong></td>
       <td style="color: var(--text-muted);">${giving.note || '-'}</td>
       <td>${statusBadge}</td>
@@ -519,7 +534,7 @@ function renderReportsTable() {
 
     tr.innerHTML = `
       <td><strong>${report.work_date}</strong></td>
-      <td>${report.bot_name || report.employee_id}</td>
+      <td>${getEmployeeDisplayName(report)}</td>
       <td>${formatMoney(report.paynet)}</td>
       <td style="color: #a5b4fc;">${formatMoney(report.card_total)}</td>
       <td>${formatMoney(report.levy)}</td>
@@ -595,7 +610,7 @@ function renderDebtsSection() {
     const color = isNegative ? '#34d399' : '#fb7185';
     tr.innerHTML = `
       <td style="font-size: 12px; color: var(--text-muted);">${(entry.created_at || '').substring(0, 16).replace('T', ' ')}</td>
-      <td><strong>${entry.employee_id}</strong></td>
+      <td><strong>${getEmployeeDisplayName(entry)}</strong></td>
       <td><strong style="color: ${color};">${deltaFormatted}</strong></td>
       <td>${entry.description}</td>
     `;

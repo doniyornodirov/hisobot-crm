@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <link rel="stylesheet" href="/static/app.css?v=20261014-23">
+  <title>Hisobot Bot — Xodim</title>
+</head>
+<body>
+<main>
+  <h1>Hisobot Bot</h1>
+  <p class="muted">Xodimlar web-ilovasi</p>
+  <section><h2 id="greeting">Tekshirilmoqda...</h2><p id="status" class="muted">Telegram akkauntingiz tasdiqlanmoqda.</p></section>
+  <div id="workspace" hidden>
+    <section>
+      <h2>Bugungi ko'rsatkichlar</h2>
+      <div id="totals" class="stats"></div>
+    </section>
+    <section>
+      <h2>Karta to'ldirish so'rovi</h2>
+      <p class="card-warning" role="alert">⚠️ Sizning birgina xatoyingiz sizni moliyaviy qiyin ahvolga soladi.</p>
+      <form id="card-form" class="stack">
+        <label>Karta raqami (16 raqam)<input name="card_number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" pattern="[0-9]{4} [0-9]{4} [0-9]{4} [0-9]{4}" maxlength="19" required></label>
+        <label>Karta egasining ismi<input name="cardholder" type="text" autocomplete="cc-name" pattern="[\p{L} ]+" title="Faqat harf va so'zlar orasidagi bo'sh joyni kiriting" maxlength="120" required></label>
+        <label>Summa (so'm)<input name="amount" type="text" inputmode="numeric" placeholder="10 000 dan kam emas" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <div id="card-amount-preview" class="card-amount-preview" aria-live="polite" aria-atomic="true"></div>
+        <button type="submit">So'rov yuborish</button>
+      </form>
+      <h3>So'rovlar tarixi</h3><div id="cards"></div>
+    </section>
+    <section>
+      <h2>Berilgan summa</h2>
+      <form id="giving-form" class="stack">
+        <label>Summa (so'm)<input name="amount" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>Izoh (ixtiyoriy)<input name="note" maxlength="500"></label>
+        <button type="submit">Summani yuborish</button>
+      </form>
+      <h3>Summalar tarixi</h3><div id="givings"></div>
+    </section>
+    <section>
+      <h2>Kunlik hisobot</h2>
+      <p class="muted">Tasdiqlangan karta va berilgan summa avtomatik hisoblanadi. Har kunga bir marta yuboriladi.</p>
+      <form id="report-form" class="form-grid">
+        <label>Sana<input name="work_date" type="date" required></label>
+        <label>Paynet (so'm)<input name="paynet" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>Card (+3%) — avtomatik<input id="card-total" type="text" disabled></label>
+        <label>Levy (so'm)<input name="levy" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>SIMcard (dona)<input name="simcard" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="9" required></label>
+        <label>Qarzdorlik (qoldiq)<input id="debt-total" type="text" disabled></label>
+        <label>Qarz uchun (so'm)<input name="debt_payment" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>Terminal (so'm)<input name="terminal" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>Berildi — tasdiqlangan<input id="giving-total" type="text" disabled></label>
+        <label>Kunlik (so'm)<input name="daily" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>Skidka (so'm)<input name="discount" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label>Xarajat (so'm)<input name="expense" type="text" inputmode="numeric" pattern="[0-9]{1,3}( [0-9]{3})*" maxlength="13" required></label>
+        <label class="wide">Izoh<input name="comment" maxlength="1000"></label>
+        <button type="submit">Hisobotni yuborish</button>
+      </form>
+      <h3>Hisobotlar tarixi</h3><div id="reports"></div>
+    </section>
+    <section><h2>Qarzdorlik tarixi</h2><div id="debts"></div></section>
+    <section>
+      <h2>Reyting</h2>
+      <div class="ranking-grid compact-ranking-grid employee-ranking-grid">
+        <div class="ranking-panel ranking-monthly">
+          <h3>Joriy oy — TOP 3</h3>
+          <div id="monthly-ranking"></div>
+          <div id="monthly-rating" class="my-rating"></div>
+        </div>
+        <div class="ranking-panel ranking-overall">
+          <h3>Umumiy — TOP 3</h3>
+          <div id="overall-ranking"></div>
+          <div id="overall-rating" class="my-rating"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="/static/employee.js?v=20261014-24" defer></script>
+</body>
+</html>

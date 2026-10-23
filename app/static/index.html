@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <link rel="stylesheet" href="/static/app.css?v=20261014-19">
+  <title>Hisobot Bot — Admin</title>
+</head>
+<body>
+<main>
+  <h1>Hisobot Bot — Admin panel</h1>
+  <p id="auth-status" class="muted">Telegram akkauntingiz tekshirilmoqda...</p>
+  <p id="message" role="status"></p>
+  <section>
+    <h2>Xodim qo'shish</h2>
+    <form id="add-form" class="form-row">
+      <input name="telegram_id" type="number" min="1" placeholder="Telegram ID" required disabled>
+      <input name="bot_name" maxlength="100" placeholder="Bot taniydigan ism" required disabled>
+      <button type="submit" disabled>Xodimni qo'shish</button>
+    </form>
+    <div id="employees"></div>
+  </section>
+  <section><h2>Xodim bergan summalar</h2><div id="givings"></div></section>
+  <section>
+    <h2>Kunlik hisobotlar</h2>
+    <label class="report-filter">Xodim bo'yicha saralash
+      <select id="report-employee-filter">
+        <option value="">Barcha xodimlar</option>
+      </select>
+    </label>
+    <div id="reports"></div>
+  </section>
+  <section><h2>Qarzdorlik va tarix</h2><div id="debts"></div></section>
+  <section>
+    <h2>Reyting</h2>
+    <div class="ranking-grid compact-ranking-grid">
+      <div class="ranking-panel ranking-monthly">
+        <h3>Joriy oy — TOP 3</h3>
+        <div id="monthly-ranking"></div>
+      </div>
+      <div class="ranking-panel ranking-overall">
+        <h3>Umumiy — TOP 3</h3>
+        <div id="overall-ranking"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/static/admin.js?v=20261014-18" defer></script>
+</body>
+</html>

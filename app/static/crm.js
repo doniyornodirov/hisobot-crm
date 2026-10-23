@@ -582,12 +582,12 @@ function renderReportsTable() {
       <td>${formatMoney(report.paynet)}</td>
       <td style="color: #a5b4fc;">${formatMoney(report.card_total)}</td>
       <td>${formatMoney(report.levy)}</td>
+      <td>${formatMoney(report.debt_payment)}</td>
       <td>${report.simcard} dona</td>
       <td style="color: #34d399;">${formatMoney(report.giving_total)}</td>
       <td>${formatMoney(report.terminal)}</td>
       <td>${formatMoney(report.daily)}</td>
       <td style="color: #fb7185;">${formatMoney(report.expense)}</td>
-      <td>${formatMoney(report.debt_payment)}</td>
       <td><strong style="color: #38bdf8;">${formatMoney(total)}</strong></td>
       <td>${statusBadge}</td>
       <td>${actions}</td>

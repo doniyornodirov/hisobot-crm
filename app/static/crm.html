@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hisobot CRM — Moliya va Boshqaruv Tizimi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/crm.css?v=20261023-01">
+</head>
+<body>
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="auth-screen" class="auth-wrapper">
+    <div class="auth-ambient-orb orb-1"></div>
+    <div class="auth-ambient-orb orb-2"></div>
+    
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h1>HISOBOT CRM</h1>
+        <p>Moliya, hisobotlar va xodimlar boshqaruvi platformasi</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tab-btn-admin" class="auth-tab-btn active" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Admin (Boshqaruv)
+        </button>
+        <button id="tab-btn-employee" class="auth-tab-btn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Xodim
+        </button>
+      </div>
+
+      <div id="auth-error" class="auth-alert error"></div>
+
+      <!-- Admin Form -->
+      <form id="admin-login-form" class="auth-form">
+        <div class="form-group">
+          <label>Admin Login / ID</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            <input name="username" class="input-field" type="text" placeholder="admin yoki Superadmin ID" value="admin" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Parol</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input name="password" class="input-field" type="password" placeholder="Parolni kiriting" value="admin123" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">
+          <span>Admin sifatida kirish</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Employee Form -->
+      <form id="employee-login-form" class="auth-form" style="display: none;">
+        <div class="form-group">
+          <label>Xodimni tanlang</label>
+          <select id="employee-select-list" name="employee_id" class="input-field">
+            <option value="">Ro'yxatdan xodimni tanlang...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Yoki Telegram ID raqamingiz</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 10l4 4m0-4l-4 4"/>
+            </svg>
+            <input id="employee-id-input" name="manual_employee_id" class="input-field" type="number" placeholder="Masalan: 12345678">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>PIN kodi (Standart: 1234)</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input name="pin" class="input-field" type="password" placeholder="PIN kodni kiriting" value="1234" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">
+          <span>Xodim sifatida kirish</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Quick Demo Access -->
+      <div class="auth-demo-box">
+        <div class="auth-demo-title">Tezkor sinov uchun 1 klikda kirish</div>
+        <div class="auth-demo-btns">
+          <button id="quick-demo-admin" class="btn-demo" type="button">
+            👑 Superadmin (Demo)
+          </button>
+          <button id="quick-demo-employee" class="btn-demo" type="button">
+            👤 Xodim (Demo)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CRM APPLICATION ================= -->
+  <div id="app-container" class="app-container" style="display: none;">
+    
+    <!-- Sidebar -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="sidebar-title">
+          <h2>HISOBOT CRM</h2>
+          <span id="sidebar-role-tag">PRO PLATFORM</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">Asosiy menyu</div>
+        <a class="nav-item active" data-view="dashboard">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>Dashboard</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-view="cards">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+            <span>Karta so'rovlari</span>
+          </div>
+          <span id="badge-pending-cards" class="nav-badge pending" style="display: none;">0</span>
+        </a>
+
+        <a class="nav-item" data-view="givings">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span>Berilgan pullar</span>
+          </div>
+          <span id="badge-pending-givings" class="nav-badge pending" style="display: none;">0</span>
+        </a>
+
+        <a class="nav-item" data-view="reports">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Kunlik hisobotlar</span>
+          </div>
+          <span id="badge-pending-reports" class="nav-badge pending" style="display: none;">0</span>
+        </a>
+
+        <div class="nav-label">Moliya va Nazorat</div>
+        <a class="nav-item" data-view="debts">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>Qarzdorlik & Ledger</span>
+          </div>
+        </a>
+
+        <a id="nav-item-employees" class="nav-item" data-view="employees">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span>Xodimlar</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-view="rankings">
+          <div class="nav-item-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+            </svg>
+            <span>Reyting Tablosi</span>
+          </div>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-card">
+          <div id="user-avatar" class="user-avatar">AD</div>
+          <div class="user-details">
+            <div id="user-display-name" class="user-name">Foydalanuvchi</div>
+            <div id="user-role-label" class="user-role-badge">Admin</div>
+          </div>
+          <button id="btn-logout" class="btn-logout" title="Tizimdan chiqish" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="sidebar-toggle-btn" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div class="topbar-title">
+            <h1 id="topbar-page-title">Boshqaruv Paneli</h1>
+            <p id="topbar-breadcrumb">Hisobot CRM &gt; Dashboard</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            <span>Localhost CRM Online</span>
+          </div>
+          <div class="live-clock" id="live-clock">--:--:--</div>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- ================= VIEW: DASHBOARD ================= -->
+        <section id="view-dashboard" class="view-section active">
+          <div class="hero-card">
+            <div class="hero-content">
+              <h2 id="hero-greeting">Xush kelibsiz!</h2>
+              <p id="hero-subtitle">Barcha moliyaviy operatsiyalar va xodimlar hisobotlari monitoringi.</p>
+            </div>
+            <div class="hero-actions" id="hero-actions-container">
+              <!-- Actions dynamically injected based on role -->
+            </div>
+          </div>
+
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Karta so'rovlari (+3%)</span>
+                <div class="kpi-icon indigo">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-card-total">0 so'm</div>
+              <div class="kpi-sub" id="kpi-card-sub">Bugun tasdiqlangan</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Berilgan pullar</span>
+                <div class="kpi-icon emerald">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-giving-total">0 so'm</div>
+              <div class="kpi-sub" id="kpi-giving-sub">Bugun tasdiqlangan</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Kunlik hisobotlar</span>
+                <div class="kpi-icon amber">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-reports-count">0</div>
+              <div class="kpi-sub" id="kpi-reports-sub">Hisobotlar holati</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Qarzdorlik balansi</span>
+                <div class="kpi-icon rose">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="kpi-debt-balance">0 so'm</div>
+              <div class="kpi-sub" id="kpi-debt-sub">Joriy qoldiq</div>
+            </div>
+          </div>
+
+          <!-- Dashboard Recent Review Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Oxirgi kutilayotgan so'rovlar</span>
+              </h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tur</th>
+                    <th>Xodim</th>
+                    <th>Tafsilot</th>
+                    <th>Summa</th>
+                    <th>Holat</th>
+                    <th>Amal</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-pending-tbody">
+                  <tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 24px;">Hozircha kutilayotgan so'rovlar yo'q.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW: CARDS ================= -->
+        <section id="view-cards" class="view-section">
+          <!-- Employee Card Request Form -->
+          <div id="employee-card-form-container" class="form-card" style="display: none;">
+            <h4>💳 Yangi karta to'ldirish so'rovi</h4>
+            <div class="card-warning-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>⚠️ Sizning birgina xatoyingiz sizni moliyaviy qiyin ahvolga soladi. Ma'lumotlarni diqqat bilan tekshiring!</span>
+            </div>
+            <form id="form-submit-card">
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label>Karta raqami (16 ta raqam)</label>
+                  <input id="input-card-number" class="input-field" type="text" placeholder="8600 0000 0000 0000" maxlength="19" required>
+                </div>
+                <div class="form-group">
+                  <label>Karta egasining ismi</label>
+                  <input id="input-cardholder" class="input-field" type="text" placeholder="Faqat harflar (masalan: ALI VALIYEV)" maxlength="120" required>
+                </div>
+                <div class="form-group">
+                  <label>Summa (so'm)</label>
+                  <input id="input-card-amount" class="input-field" type="text" placeholder="10 000 dan kam emas" maxlength="13" required>
+                </div>
+              </div>
+              <div id="card-fee-preview" class="fee-preview-box">
+                <span>3% ustama va yaxlitlash bilan jami:</span>
+                <strong id="card-fee-amount">0 so'm</strong>
+              </div>
+              <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">So'rovni yuborish</button>
+            </form>
+          </div>
+
+          <!-- Cards Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>💳 Karta to'ldirish so'rovlari tarixi</h3>
+              <div class="filter-group">
+                <button class="filter-btn active" data-filter-status="all" data-target="cards">Hammasi</button>
+                <button class="filter-btn" data-filter-status="pending" data-target="cards">Kutilmoqda</button>
+                <button class="filter-btn" data-filter-status="approved" data-target="cards">Tasdiqlangan</button>
+                <button class="filter-btn" data-filter-status="rejected" data-target="cards">Rad etilgan</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Sana / Vaqt</th>
+                    <th>Xodim</th>
+                    <th>Karta raqami</th>
+                    <th>Karta egasi</th>
+                    <th>Asl summa</th>
+                    <th>+3% ustama bilan</th>
+                    <th>Holat</th>
+                    <th>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="cards-tbody">
+                  <tr><td colspan="9" style="text-align: center; color: var(--text-dim); padding: 24px;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW: GIVINGS ================= -->
+        <section id="view-givings" class="view-section">
+          <!-- Employee Giving Form -->
+          <div id="employee-giving-form-container" class="form-card" style="display: none;">
+            <h4>💵 Berilgan pulni topshirish</h4>
+            <form id="form-submit-giving">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Topshirilgan summa (so'm)</label>
+                  <input id="input-giving-amount" class="input-field" type="text" placeholder="Summani kiriting" required>
+                </div>
+                <div class="form-group">
+                  <label>Izoh (ixtiyoriy)</label>
+                  <input id="input-giving-note" class="input-field" type="text" placeholder="Masalan: Kassa qoldig'i yoki naqd topshirildi">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px; margin-top: 14px;">Summani yuborish</button>
+            </form>
+          </div>
+
+          <!-- Givings Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>💵 Topshirilgan summalar tarixi</h3>
+              <div class="filter-group">
+                <button class="filter-btn active" data-filter-status="all" data-target="givings">Hammasi</button>
+                <button class="filter-btn" data-filter-status="pending" data-target="givings">Kutilmoqda</button>
+                <button class="filter-btn" data-filter-status="approved" data-target="givings">Tasdiqlangan</button>
+                <button class="filter-btn" data-filter-status="rejected" data-target="givings">Rad etilgan</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Sana</th>
+                    <th>Xodim</th>
+                    <th>Summa</th>
+                    <th>Izoh</th>
+                    <th>Holat</th>
+                    <th>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="givings-tbody">
+                  <tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 24px;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW: REPORTS ================= -->
+        <section id="view-reports" class="view-section">
+          <!-- Employee Report Form -->
+          <div id="employee-report-form-container" class="form-card" style="display: none;">
+            <h4>📋 Kunlik hisobot topshirish</h4>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+              Tasdiqlangan karta (+3%) va berilgan summa avtomatik hisoblanadi. Har kunga bitta hisobot yuboriladi.
+            </p>
+            <form id="form-submit-report">
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label>Hisobot sanasi</label>
+                  <input id="input-report-date" class="input-field" type="date" required>
+                </div>
+                <div class="form-group">
+                  <label>Paynet (so'm)</label>
+                  <input id="input-report-paynet" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Card (+3%) — Avtomatik</label>
+                  <input id="input-report-card-auto" class="input-field" type="text" disabled style="opacity: 0.7;">
+                </div>
+                <div class="form-group">
+                  <label>Levy (so'm)</label>
+                  <input id="input-report-levy" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>SIMcard (dona)</label>
+                  <input id="input-report-simcard" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Qarzdorlik qoldig'i — Avtomatik</label>
+                  <input id="input-report-debt-balance-auto" class="input-field" type="text" disabled style="opacity: 0.7;">
+                </div>
+                <div class="form-group">
+                  <label>Qarz uchun (so'm)</label>
+                  <input id="input-report-debt-payment" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Terminal (so'm)</label>
+                  <input id="input-report-terminal" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Berildi (tasdiqlangan) — Avtomatik</label>
+                  <input id="input-report-giving-auto" class="input-field" type="text" disabled style="opacity: 0.7;">
+                </div>
+                <div class="form-group">
+                  <label>Kunlik (so'm)</label>
+                  <input id="input-report-daily" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Skidka (so'm)</label>
+                  <input id="input-report-discount" class="input-field" type="text" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Xarajat (so'm)</label>
+                  <input id="input-report-expense" class="input-field" type="text" placeholder="0" required>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 14px;">
+                <label>Izoh (ixtiyoriy)</label>
+                <input id="input-report-comment" class="input-field" type="text" placeholder="Izoh yoki eslatma yozing...">
+              </div>
+
+              <div class="report-summary-box">
+                <span>📦 JAMI TOPSHIRILISHI KERAK:</span>
+                <strong id="report-total-calculated">0 so'm</strong>
+              </div>
+
+              <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">Hisobotni yuborish</button>
+            </form>
+          </div>
+
+          <!-- Reports Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>📋 Kunlik hisobotlar ro'yxati</h3>
+              <div class="panel-actions">
+                <select id="report-filter-employee" class="input-field" style="width: 200px; padding: 6px 10px; font-size: 13px;">
+                  <option value="">Barcha xodimlar</option>
+                </select>
+                <div class="filter-group">
+                  <button class="filter-btn active" data-filter-status="all" data-target="reports">Hammasi</button>
+                  <button class="filter-btn" data-filter-status="pending" data-target="reports">Kutilmoqda</button>
+                  <button class="filter-btn" data-filter-status="approved" data-target="reports">Tasdiqlangan</button>
+                  <button class="filter-btn" data-filter-status="rejected" data-target="reports">Rad etilgan</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th>Xodim</th>
+                    <th>Paynet</th>
+                    <th>Card (+3%)</th>
+                    <th>Levy</th>
+                    <th>SIM</th>
+                    <th>Berildi</th>
+                    <th>Terminal</th>
+                    <th>Kunlik</th>
+                    <th>Xarajat</th>
+                    <th>Qarz to'lov</th>
+                    <th>Jami topshirish</th>
+                    <th>Holat</th>
+                    <th>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="reports-tbody">
+                  <tr><td colspan="14" style="text-align: center; color: var(--text-dim); padding: 24px;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW: DEBTS ================= -->
+        <section id="view-debts" class="view-section">
+          <!-- Admin Add Debt Form -->
+          <div id="admin-debt-form-container" class="form-card" style="display: none;">
+            <h4>💰 Yangi qarzdorlik belgilash</h4>
+            <form id="form-submit-debt">
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label>Xodim</label>
+                  <select id="debt-employee-select" class="input-field" required>
+                    <option value="">Xodimni tanlang...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Qarz summasi (so'm)</label>
+                  <input id="input-debt-amount" class="input-field" type="text" placeholder="Masalan: 500 000" required>
+                </div>
+                <div class="form-group">
+                  <label>Sabab / Asos</label>
+                  <input id="input-debt-description" class="input-field" type="text" placeholder="Qarz berilish sababi" required>
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px; margin-top: 14px;">Qarzni kiritish</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>💰 Xodimlar qarzdorlik qoldiqlari</h3>
+            </div>
+            <div class="kpi-grid" id="debt-balances-grid">
+              <!-- Balances dynamically populated -->
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>📜 Qarz operatsiyalari daftari (Audit izi)</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sana / Vaqt</th>
+                    <th>Xodim ID</th>
+                    <th>O'zgarish (Delta)</th>
+                    <th>Izoh / Asos</th>
+                  </tr>
+                </thead>
+                <tbody id="debts-tbody">
+                  <tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW: EMPLOYEES (ADMIN ONLY) ================= -->
+        <section id="view-employees" class="view-section">
+          <div class="form-card">
+            <h4>👥 Yangi xodimni ro'yxatdan o'tkazish</h4>
+            <form id="form-submit-employee">
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label>Telegram ID / Xodim ID raqami</label>
+                  <input id="input-emp-telegram-id" class="input-field" type="number" min="1" placeholder="Masalan: 86863415" required>
+                </div>
+                <div class="form-group">
+                  <label>Xodim ismi / Bot taniydigan nom</label>
+                  <input id="input-emp-name" class="input-field" type="text" placeholder="Masalan: Alisher Valiyev" required>
+                </div>
+                <div class="form-group">
+                  <label>PIN kodi (Kirish uchun)</label>
+                  <input id="input-emp-pin" class="input-field" type="text" placeholder="1234" value="1234" required>
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px; margin-top: 14px;">Xodimni qo'shish</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>👥 Faol xodimlar ro'yxati</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Xodim ID</th>
+                    <th>Ismi</th>
+                    <th>Joriy PIN</th>
+                    <th>Holat</th>
+                    <th>Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="employees-tbody">
+                  <tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW: RANKINGS ================= -->
+        <section id="view-rankings" class="view-section">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🏆 Reyting & Leaderboard</h3>
+              <div class="filter-group">
+                <button id="btn-rank-monthly" class="filter-btn active" type="button">Joriy oy</button>
+                <button id="btn-rank-overall" class="filter-btn" type="button">Umumiy davr</button>
+              </div>
+            </div>
+
+            <!-- Visual Podium for Top 3 -->
+            <div class="podium-container" id="podium-container">
+              <!-- Dynamically populated Top 3 podium -->
+            </div>
+
+            <!-- Full Ranking Table -->
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>O'rin</th>
+                    <th>Xodim</th>
+                    <th>Jami ball</th>
+                    <th>Tasdiqlangan karta (+3%)</th>
+                    <th>Berilgan pul</th>
+                    <th>Hisobot topshirishi</th>
+                    <th>Qarz jarimasi</th>
+                  </tr>
+                </thead>
+                <tbody id="rankings-tbody">
+                  <tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 24px;">Yuklanmoqda...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+  <!-- Reject Reason Modal -->
+  <div id="modal-reject" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-reject-title">Rad etish sababini kiriting</h3>
+        <button class="modal-close-btn" type="button" onclick="closeRejectModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Rad etish sababi (Xodimga ko'rsatiladi)</label>
+        <textarea id="modal-reject-reason" class="input-field" rows="4" placeholder="Sababni batafsil yozing..." required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm secondary" type="button" onclick="closeRejectModal()">Bekor qilish</button>
+        <button id="modal-reject-confirm-btn" class="btn-sm reject" type="button">Rad etishni tasdiqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Update Modal -->
+  <div id="modal-pin" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>PIN kodni yangilash</h3>
+        <button class="modal-close-btn" type="button" onclick="closePinModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label id="modal-pin-label">Yangi PIN kod</label>
+        <input id="modal-pin-input" class="input-field" type="text" placeholder="Yangi PIN kiriting" required>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm secondary" type="button" onclick="closePinModal()">Bekor qilish</button>
+        <button id="modal-pin-confirm-btn" class="btn-sm approve" type="button">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/crm.js?v=20261023-01" defer></script>
+</body>
+</html>

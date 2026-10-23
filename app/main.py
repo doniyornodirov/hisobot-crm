@@ -23,6 +23,8 @@ from app.employees import (
     initialize_database,
     list_active_employees,
     register_employee,
+    update_employee_pin,
+    verify_employee_pin,
 )
 from app.telegram_auth import (
     create_employee_session,
@@ -30,6 +32,8 @@ from app.telegram_auth import (
     validate_telegram_init_data,
 )
 from app.workflows import (
+    _card_total_with_fee,
+    _work_date,
     add_debt,
     admin_dashboard,
     create_card_request,
@@ -73,6 +77,7 @@ async def cache_versioned_static_assets(request: Request, call_next):
 class EmployeeCreate(BaseModel):
     telegram_id: int = Field(gt=0)
     bot_name: str = Field(min_length=1, max_length=100)
+    pin: str = Field(default="1234", max_length=20)
 
     @field_validator("bot_name")
     @classmethod
@@ -81,6 +86,24 @@ class EmployeeCreate(BaseModel):
         if not cleaned:
             raise ValueError("Employee name cannot be blank")
         return cleaned
+
+    @field_validator("pin")
+    @classmethod
+    def strip_pin(cls, value: str) -> str:
+        cleaned = value.strip()
+        return cleaned or "1234"
+
+
+class WebLoginRequest(BaseModel):
+    role: str
+    username: str | None = None
+    password: str | None = None
+    employee_id: int | None = None
+    pin: str | None = None
+
+
+class EmployeePinUpdate(BaseModel):
+    pin: str = Field(min_length=1, max_length=20)
 
 
 class TelegramLogin(BaseModel):
@@ -362,6 +385,7 @@ async def admin_add_employee(employee: EmployeeCreate) -> dict[str, str]:
         employee.telegram_id,
         employee.bot_name,
         settings.superadmin_id,
+        getattr(employee, "pin", "1234"),
     )
     return {"status": result}
 
@@ -727,6 +751,13 @@ signIn().catch(() => {
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/crm", include_in_schema=False)
+async def crm_static_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "crm.html")
+
+
+@app.get("/admin", include_in_schema=False)
+@app.get("/admin-legacy", include_in_schema=False)
 async def admin_static_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
@@ -734,6 +765,233 @@ async def admin_static_page() -> FileResponse:
 @app.get("/employee", include_in_schema=False)
 async def employee_static_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "employee.html")
+
+
+@app.get("/crm/api/employees-list")
+async def crm_employees_list() -> list[dict[str, object]]:
+    settings = get_settings()
+    return [
+        {"telegram_id": emp.telegram_id, "bot_name": emp.bot_name}
+        for emp in list_active_employees(settings.employee_db_path)
+    ]
+
+
+@app.post("/crm/api/login")
+async def crm_web_login(
+    payload: WebLoginRequest,
+    response: Response,
+) -> dict[str, object]:
+    settings = get_settings()
+    if payload.role == "admin":
+        input_user = (payload.username or "").strip()
+        input_pass = (payload.password or "").strip()
+        valid_user = input_user in {settings.admin_username, str(settings.superadmin_id)}
+        if not (valid_user and input_pass == settings.admin_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Admin login yoki paroli noto'g'ri",
+            )
+        cookie_val = create_employee_session(
+            settings.superadmin_id,
+            settings.secret_key.get_secret_value(),
+        )
+        response.set_cookie(
+            key="admin_session",
+            value=cookie_val,
+            max_age=43_200,
+            httponly=True,
+            secure=settings.app_env == "production",
+            samesite="lax",
+            path="/",
+        )
+        return {
+            "status": "authenticated",
+            "role": "admin",
+            "user": {
+                "id": settings.superadmin_id,
+                "name": "Superadmin",
+                "role": "admin",
+            },
+        }
+
+    elif payload.role == "employee":
+        ident = payload.employee_id or payload.username
+        if not ident:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Xodim tanlanishi yoki ID kiritilishi kerak",
+            )
+        pin = (payload.pin or "").strip()
+        employee = verify_employee_pin(settings.employee_db_path, ident, pin)
+        if employee is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Xodim ID yoki PIN kodi noto'g'ri",
+            )
+        cookie_val = create_employee_session(
+            employee.telegram_id,
+            settings.secret_key.get_secret_value(),
+        )
+        response.set_cookie(
+            key="employee_session",
+            value=cookie_val,
+            max_age=43_200,
+            httponly=True,
+            secure=settings.app_env == "production",
+            samesite="lax",
+            path="/",
+        )
+        return {
+            "status": "authenticated",
+            "role": "employee",
+            "user": {
+                "id": employee.telegram_id,
+                "name": employee.bot_name,
+                "role": "employee",
+            },
+        }
+
+    raise HTTPException(status_code=400, detail="Noma'lum rol")
+
+
+@app.get("/crm/api/me")
+async def crm_get_current_user(request: Request) -> dict[str, object]:
+    settings = get_settings()
+    secret = settings.secret_key.get_secret_value()
+
+    admin_cookie = request.cookies.get("admin_session")
+    if admin_cookie:
+        admin_id = validate_employee_session(admin_cookie, secret)
+        if admin_id == settings.superadmin_id:
+            return {
+                "authenticated": True,
+                "role": "admin",
+                "user": {
+                    "id": settings.superadmin_id,
+                    "name": "Superadmin",
+                    "role": "admin",
+                },
+            }
+
+    emp_cookie = request.cookies.get("employee_session")
+    if emp_cookie:
+        emp_id = validate_employee_session(emp_cookie, secret)
+        if emp_id:
+            employee = get_active_employee(settings.employee_db_path, emp_id)
+            if employee:
+                return {
+                    "authenticated": True,
+                    "role": "employee",
+                    "user": {
+                        "id": employee.telegram_id,
+                        "name": employee.bot_name,
+                        "role": "employee",
+                    },
+                }
+
+    return {"authenticated": False, "role": "guest", "user": None}
+
+
+@app.post("/crm/api/logout")
+async def crm_logout(response: Response) -> dict[str, str]:
+    response.delete_cookie(
+        key="admin_session",
+        httponly=True,
+        secure=get_settings().app_env == "production",
+        samesite="lax",
+        path="/",
+    )
+    response.delete_cookie(
+        key="employee_session",
+        httponly=True,
+        secure=get_settings().app_env == "production",
+        samesite="lax",
+        path="/",
+    )
+    return {"status": "logged_out"}
+
+
+@app.get("/crm/api/dashboard")
+async def crm_dashboard_data(
+    request: Request,
+    work_date: str | None = None,
+) -> dict[str, object]:
+    settings = get_settings()
+    user_info = await crm_get_current_user(request)
+    if not user_info["authenticated"]:
+        raise HTTPException(status_code=401, detail="Avval tizimga kiring")
+
+    role = user_info["role"]
+    if role == "admin":
+        data = admin_dashboard(settings.employee_db_path)
+        employees = list_active_employees(settings.employee_db_path)
+        emp_list = [
+            {
+                "telegram_id": emp.telegram_id,
+                "bot_name": emp.bot_name,
+                "pin": emp.pin,
+            }
+            for emp in employees
+        ]
+        data["employees"] = emp_list
+
+        emp_name_map = {emp.telegram_id: emp.bot_name for emp in employees}
+        for card in data.get("cards", []):
+            if not card.get("bot_name") and card.get("employee_id") in emp_name_map:
+                card["bot_name"] = emp_name_map[card["employee_id"]]
+        for giving in data.get("givings", []):
+            if not giving.get("bot_name") and giving.get("employee_id") in emp_name_map:
+                giving["bot_name"] = emp_name_map[giving["employee_id"]]
+        for report in data.get("reports", []):
+            if not report.get("bot_name") and report.get("employee_id") in emp_name_map:
+                report["bot_name"] = emp_name_map[report["employee_id"]]
+
+        today = work_date or _work_date().isoformat()
+        today_cards_total = sum(
+            _card_total_with_fee(int(c["amount"]))
+            for c in data.get("cards", [])
+            if c.get("work_date") == today and c.get("status") == "approved"
+        )
+        today_givings_total = sum(
+            int(g["amount"])
+            for g in data.get("givings", [])
+            if g.get("work_date") == today and g.get("status") == "approved"
+        )
+        pending_cards_count = sum(1 for c in data.get("cards", []) if c.get("status") == "pending")
+        pending_givings_count = sum(1 for g in data.get("givings", []) if g.get("status") == "pending")
+        pending_reports_count = sum(1 for r in data.get("reports", []) if r.get("status") == "pending")
+        total_debt = sum(int(d["balance"]) for d in data.get("debt_balances", []))
+
+        data["stats"] = {
+            "work_date": today,
+            "active_employees_count": len(employees),
+            "pending_cards_count": pending_cards_count,
+            "today_approved_cards_total": today_cards_total,
+            "pending_givings_count": pending_givings_count,
+            "today_approved_givings_total": today_givings_total,
+            "pending_reports_count": pending_reports_count,
+            "total_reports_count": len(data.get("reports", [])),
+            "total_debt_balance": total_debt,
+        }
+        return {"role": "admin", "data": data}
+
+    elif role == "employee":
+        emp_id = int(user_info["user"]["id"])
+        data = employee_dashboard(settings.employee_db_path, emp_id, work_date)
+        return {"role": "employee", "data": data}
+
+    raise HTTPException(status_code=403, detail="Ruxsat berilmagan")
+
+
+@app.post("/crm/api/employees/{telegram_id}/pin", dependencies=[Depends(require_admin)])
+async def crm_update_employee_pin(
+    telegram_id: int,
+    payload: EmployeePinUpdate,
+) -> dict[str, str]:
+    settings = get_settings()
+    if not update_employee_pin(settings.employee_db_path, telegram_id, payload.pin, settings.superadmin_id):
+        raise HTTPException(status_code=404, detail="Faol xodim topilmadi")
+    return {"status": "pin_updated"}
 
 
 @app.post("/auth/telegram")

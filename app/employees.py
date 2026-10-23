@@ -11,6 +11,7 @@ from pathlib import Path
 class Employee:
     telegram_id: int
     bot_name: str
+    pin: str = "1234"
 
 
 def _connect(database_path: str | Path) -> sqlite3.Connection:
@@ -43,7 +44,8 @@ def initialize_database(database_path: str | Path) -> None:
                 bot_name TEXT NOT NULL,
                 is_active INTEGER NOT NULL DEFAULT 1,
                 hired_at TEXT NOT NULL,
-                dismissed_at TEXT
+                dismissed_at TEXT,
+                pin TEXT NOT NULL DEFAULT '1234'
             )
             """
         )
@@ -59,6 +61,11 @@ def initialize_database(database_path: str | Path) -> None:
             )
             """
         )
+        columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(employees)").fetchall()
+        }
+        if "pin" not in columns:
+            connection.execute("ALTER TABLE employees ADD COLUMN pin TEXT NOT NULL DEFAULT '1234'")
 
 
 def register_employee(
@@ -66,8 +73,10 @@ def register_employee(
     telegram_id: int,
     bot_name: str,
     actor_id: int = 0,
+    pin: str = "1234",
 ) -> str:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    clean_pin = (pin or "1234").strip() or "1234"
     with _connection(database_path) as connection:
         existing = connection.execute(
             "SELECT is_active FROM employees WHERE telegram_id = ?",
@@ -76,10 +85,10 @@ def register_employee(
         if existing is None:
             connection.execute(
                 """
-                INSERT INTO employees (telegram_id, bot_name, hired_at)
-                VALUES (?, ?, ?)
+                INSERT INTO employees (telegram_id, bot_name, hired_at, pin)
+                VALUES (?, ?, ?, ?)
                 """,
-                (telegram_id, bot_name, now),
+                (telegram_id, bot_name, now, clean_pin),
             )
             result = "created"
         else:
@@ -87,10 +96,10 @@ def register_employee(
             connection.execute(
                 """
                 UPDATE employees
-                SET bot_name = ?, is_active = 1, hired_at = ?, dismissed_at = NULL
+                SET bot_name = ?, is_active = 1, hired_at = ?, dismissed_at = NULL, pin = ?
                 WHERE telegram_id = ?
                 """,
-                (bot_name, now, telegram_id),
+                (bot_name, now, clean_pin, telegram_id),
             )
         connection.execute(
             """INSERT INTO workflow_audit (employee_id, actor_id, action, details, created_at)
@@ -130,6 +139,31 @@ def dismiss_employee(
         return dismissed
 
 
+def update_employee_pin(
+    database_path: str | Path,
+    telegram_id: int,
+    pin: str,
+    actor_id: int = 0,
+) -> bool:
+    clean_pin = pin.strip()
+    if not clean_pin:
+        raise ValueError("PIN bo'sh bo'lishi mumkin emas")
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with _connection(database_path) as connection:
+        result = connection.execute(
+            "UPDATE employees SET pin = ? WHERE telegram_id = ? AND is_active = 1",
+            (clean_pin, telegram_id),
+        )
+        updated = result.rowcount == 1
+        if updated:
+            connection.execute(
+                """INSERT INTO workflow_audit (employee_id, actor_id, action, details, created_at)
+                   VALUES (?, ?, 'pin_updated', '{}', ?)""",
+                (telegram_id, actor_id, now),
+            )
+        return updated
+
+
 def get_active_employee(
     database_path: str | Path,
     telegram_id: int,
@@ -137,7 +171,7 @@ def get_active_employee(
     with _connection(database_path) as connection:
         row = connection.execute(
             """
-            SELECT telegram_id, bot_name
+            SELECT telegram_id, bot_name, COALESCE(pin, '1234') AS pin
             FROM employees
             WHERE telegram_id = ? AND is_active = 1
             """,
@@ -145,20 +179,52 @@ def get_active_employee(
         ).fetchone()
     if row is None:
         return None
-    return Employee(telegram_id=row["telegram_id"], bot_name=row["bot_name"])
+    return Employee(telegram_id=row["telegram_id"], bot_name=row["bot_name"], pin=row["pin"])
 
 
 def list_active_employees(database_path: str | Path) -> list[Employee]:
     with _connection(database_path) as connection:
         rows = connection.execute(
             """
-            SELECT telegram_id, bot_name
+            SELECT telegram_id, bot_name, COALESCE(pin, '1234') AS pin
             FROM employees
             WHERE is_active = 1
             ORDER BY bot_name COLLATE NOCASE, telegram_id
             """
         ).fetchall()
     return [
-        Employee(telegram_id=row["telegram_id"], bot_name=row["bot_name"])
+        Employee(telegram_id=row["telegram_id"], bot_name=row["bot_name"], pin=row["pin"])
         for row in rows
     ]
+
+
+def verify_employee_pin(
+    database_path: str | Path,
+    identifier: int | str,
+    pin: str,
+) -> Employee | None:
+    clean_pin = str(pin).strip()
+    with _connection(database_path) as connection:
+        if isinstance(identifier, int) or (isinstance(identifier, str) and identifier.isdigit()):
+            row = connection.execute(
+                """
+                SELECT telegram_id, bot_name, COALESCE(pin, '1234') AS pin
+                FROM employees
+                WHERE telegram_id = ? AND is_active = 1
+                """,
+                (int(identifier),),
+            ).fetchone()
+        else:
+            row = connection.execute(
+                """
+                SELECT telegram_id, bot_name, COALESCE(pin, '1234') AS pin
+                FROM employees
+                WHERE LOWER(bot_name) = LOWER(?) AND is_active = 1
+                """,
+                (str(identifier).strip(),),
+            ).fetchone()
+    if row is None:
+        return None
+    if str(row["pin"]).strip() != clean_pin:
+        return None
+    return Employee(telegram_id=row["telegram_id"], bot_name=row["bot_name"], pin=row["pin"])

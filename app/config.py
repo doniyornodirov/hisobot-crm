@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     database_url: SecretStr
     secret_key: SecretStr
     postgres_password: SecretStr | None = None
+    admin_username: str = "admin"
+    admin_password: str = "admin123"
 
     @field_validator("secret_key")
     @classmethod

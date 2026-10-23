@@ -24,7 +24,11 @@ def _work_date() -> date:
 @contextmanager
 def _database(database_path: str | Path) -> Iterator[sqlite3.Connection]:
     path = Path(database_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        path = Path("/tmp") / path.name
+        path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")

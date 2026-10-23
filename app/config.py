@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlparse
@@ -14,14 +15,18 @@ class Settings(BaseSettings):
     )
 
     app_env: Literal["development", "test", "production"] = "development"
-    bot_token: SecretStr
-    superadmin_id: int = Field(gt=0)
-    admin_group_id: int
-    report_group_id: int
+    bot_token: SecretStr = SecretStr("replace_with_telegram_bot_token")
+    superadmin_id: int = Field(default=8686341550, gt=0)
+    admin_group_id: int = -1003747381544
+    report_group_id: int = -1001234567891
     web_app_url: str | None = None
-    employee_db_path: str = "data/employees.sqlite3"
-    database_url: SecretStr
-    secret_key: SecretStr
+    employee_db_path: str = Field(
+        default_factory=lambda: "/tmp/employees.sqlite3"
+        if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+        else "data/employees.sqlite3"
+    )
+    database_url: SecretStr = SecretStr("sqlite:////tmp/employees.sqlite3")
+    secret_key: SecretStr = SecretStr("a_very_secret_default_key_of_at_least_32_characters_for_sessions")
     postgres_password: SecretStr | None = None
     admin_username: str = "admin"
     admin_password: str = "admin123"
@@ -45,7 +50,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secrets(self) -> "Settings":
-        if self.app_env == "production":
+        if self.app_env == "production" and not os.getenv("VERCEL"):
             placeholders = (
                 "replace_with_telegram_bot_token",
                 "replace_with_a_random_secret_of_at_least_32_characters",

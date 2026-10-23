@@ -16,7 +16,11 @@ class Employee:
 
 def _connect(database_path: str | Path) -> sqlite3.Connection:
     path = Path(database_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        path = Path("/tmp") / path.name
+        path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     return connection

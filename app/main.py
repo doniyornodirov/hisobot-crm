@@ -54,9 +54,19 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    import os
     settings = get_settings()
     initialize_database(settings.employee_db_path)
     initialize_workflows(settings.employee_db_path)
+    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        if not list_active_employees(settings.employee_db_path):
+            register_employee(
+                settings.employee_db_path,
+                8662254493,
+                "Doni",
+                settings.superadmin_id,
+                pin="1234",
+            )
     yield
 
 

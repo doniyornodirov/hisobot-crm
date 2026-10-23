@@ -2,8 +2,10 @@ from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 
-from aiogram import Bot
+from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramAPIError
+from aiogram.filters import CommandStart
+from aiogram.types import Update
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,8 +21,14 @@ def _is_bot_configured(token: str) -> bool:
 from app.bot import (
     card_decision_keyboard,
     card_notification_text,
+    card_request_decision,
     report_notification_text,
+    start_command,
 )
+
+bot_dispatcher = Dispatcher()
+bot_dispatcher.message.register(start_command, CommandStart())
+bot_dispatcher.callback_query.register(card_request_decision, F.data.startswith("card:"))
 from app.employees import (
     Employee,
     dismiss_employee,
@@ -72,6 +80,20 @@ async def lifespan(_: FastAPI):
                 settings.superadmin_id,
                 pin="1234",
             )
+        token = settings.bot_token.get_secret_value().strip()
+        if _is_bot_configured(token):
+            try:
+                target_url = "https://hisobot-crm.vercel.app/api/telegram/webhook"
+                async with Bot(token=token) as bot:
+                    wh = await bot.get_webhook_info()
+                    if wh.url != target_url:
+                        await bot.set_webhook(
+                            url=target_url,
+                            allowed_updates=["message", "callback_query"],
+                            drop_pending_updates=False,
+                        )
+            except Exception:
+                logger.exception("Lifespan set_webhook xatosi")
     yield
 
 
@@ -1107,3 +1129,34 @@ async def health_check() -> dict[str, object]:
         "os_env_keys": [k for k in os.environ if any(x in k for x in ["BOT", "ADMIN", "REPORT", "SUPERADMIN"])],
         "token_len": len(raw_env),
     }
+
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(request: Request) -> Response:
+    settings = get_settings()
+    token = settings.bot_token.get_secret_value().strip()
+    if not _is_bot_configured(token):
+        return Response(status_code=200)
+    try:
+        data = await request.json()
+        async with Bot(token=token) as bot:
+            update = Update.model_validate(data, context={"bot": bot})
+            await bot_dispatcher.feed_update(bot, update)
+    except Exception:
+        logger.exception("Xatolik Telegram webhook update ni qayta ishlashda")
+    return Response(status_code=200)
+
+
+@app.get("/api/telegram/setup-webhook")
+async def telegram_setup_webhook() -> dict[str, object]:
+    settings = get_settings()
+    token = settings.bot_token.get_secret_value().strip()
+    webhook_url = "https://hisobot-crm.vercel.app/api/telegram/webhook"
+    async with Bot(token=token) as bot:
+        res = await bot.set_webhook(
+            url=webhook_url,
+            allowed_updates=["message", "callback_query"],
+            drop_pending_updates=False,
+        )
+        info = await bot.get_webhook_info()
+    return {"success": res, "webhook_url": info.url, "pending_count": info.pending_update_count}

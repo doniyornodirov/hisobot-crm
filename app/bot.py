@@ -148,22 +148,26 @@ async def card_request_decision(callback: CallbackQuery, bot: Bot) -> None:
         await callback.answer("So'rov tugmasi yaroqsiz.", show_alert=True)
         return
 
-    try:
-        member = await bot.get_chat_member(
-            chat_id=settings.admin_group_id,
-            user_id=callback.from_user.id,
-        )
-    except TelegramAPIError:
-        logger.exception(
-            "Guruhdagi %s foydalanuvchining admin huquqini tekshirib bo'lmadi",
-            callback.from_user.id,
-        )
-        await callback.answer(
-            "Admin huquqini tekshirib bo'lmadi. Botni guruhga admin qiling.",
-            show_alert=True,
-        )
-        return
-    if member.status not in {ChatMemberStatus.CREATOR, ChatMemberStatus.ADMINISTRATOR}:
+    is_authorized = callback.from_user.id == settings.superadmin_id
+    if not is_authorized:
+        try:
+            member = await bot.get_chat_member(
+                chat_id=settings.admin_group_id,
+                user_id=callback.from_user.id,
+            )
+            is_authorized = member.status in {ChatMemberStatus.CREATOR, ChatMemberStatus.ADMINISTRATOR}
+        except TelegramAPIError:
+            logger.exception(
+                "Guruhdagi %s foydalanuvchining admin huquqini tekshirib bo'lmadi",
+                callback.from_user.id,
+            )
+            await callback.answer(
+                "Admin huquqini tekshirib bo'lmadi. Botni guruhga admin qiling.",
+                show_alert=True,
+            )
+            return
+
+    if not is_authorized:
         await callback.answer("Qarorni faqat guruh adminlari o'zgartira oladi.", show_alert=True)
         return
 

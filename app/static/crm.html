@@ -2,12 +2,15 @@
 <html lang="uz">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Hisobot CRM — Moliya va Boshqaruv Tizimi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/crm.css?v=20261023-01">
+  <link rel="stylesheet" href="/static/crm.css?v=20261023-02">
 </head>
 <body>
 
@@ -128,15 +131,23 @@
     <!-- Sidebar -->
     <aside class="app-sidebar" id="app-sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        <div class="sidebar-brand-wrapper">
+          <div class="sidebar-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="sidebar-title">
+            <h2>HISOBOT CRM</h2>
+            <span id="sidebar-role-tag">PRO PLATFORM</span>
+          </div>
+        </div>
+        <button id="sidebar-close-btn" class="sidebar-close-btn" type="button" aria-label="Yopish">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
-        </div>
-        <div class="sidebar-title">
-          <h2>HISOBOT CRM</h2>
-          <span id="sidebar-role-tag">PRO PLATFORM</span>
-        </div>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
@@ -225,6 +236,7 @@
         </div>
       </div>
     </aside>
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 
     <!-- Main Content -->
     <main class="app-main">
@@ -729,6 +741,41 @@
 
       </div>
     </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+      <a class="mobile-nav-btn active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <span>Asosiy</span>
+      </a>
+      <a class="mobile-nav-btn" data-view="cards">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        <span>Kartalar</span>
+      </a>
+      <a class="mobile-nav-btn" data-view="reports">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+        </svg>
+        <span>Hisobot</span>
+      </a>
+      <a class="mobile-nav-btn" data-view="debts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span>Qarz</span>
+      </a>
+      <button class="mobile-nav-btn" id="mobile-menu-more-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <span>Menyu</span>
+      </button>
+    </nav>
   </div>
 
   <!-- ================= MODALS ================= -->

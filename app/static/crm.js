@@ -696,6 +696,9 @@ function switchView(viewName) {
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.toggle('active', item.dataset.view === viewName);
   });
+  document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === viewName);
+  });
 
   const titles = {
     dashboard: 'Boshqaruv Paneli',
@@ -711,12 +714,57 @@ function switchView(viewName) {
 
   // Mobile sidebar close
   document.getElementById('app-sidebar').classList.remove('open');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (backdrop) backdrop.classList.remove('active');
 }
 
 // Event Listeners Initialization
 document.addEventListener('DOMContentLoaded', () => {
   startLiveClock();
   checkAuth();
+
+  // Mobile drawer controls
+  function openMobileSidebar() {
+    document.getElementById('app-sidebar').classList.add('open');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (bd) bd.classList.add('active');
+  }
+
+  function closeMobileSidebar() {
+    document.getElementById('app-sidebar').classList.remove('open');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (bd) bd.classList.remove('active');
+  }
+
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const sidebar = document.getElementById('app-sidebar');
+      if (sidebar.classList.contains('open')) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+    });
+  }
+
+  const closeBtn = document.getElementById('sidebar-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', closeMobileSidebar);
+
+  const bd = document.getElementById('sidebar-backdrop');
+  if (bd) bd.addEventListener('click', closeMobileSidebar);
+
+  // Mobile bottom nav buttons
+  document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const view = btn.dataset.view;
+      if (view) switchView(view);
+    });
+  });
+
+  const moreBtn = document.getElementById('mobile-menu-more-btn');
+  if (moreBtn) moreBtn.addEventListener('click', openMobileSidebar);
 
   // Sidebar navigation click
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -725,11 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const view = item.dataset.view;
       if (view) switchView(view);
     });
-  });
-
-  // Mobile sidebar toggle
-  document.getElementById('sidebar-toggle').addEventListener('click', () => {
-    document.getElementById('app-sidebar').classList.toggle('open');
   });
 
   // Auth Switcher Tabs

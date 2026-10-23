@@ -47,6 +47,14 @@ function showToast(message, type = 'success') {
   }, 4000);
 }
 
+async function parseJsonResponse(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 // Live Clock in Tashkent time (UTC+5)
 function startLiveClock() {
   const el = document.getElementById('live-clock');
@@ -947,9 +955,9 @@ document.addEventListener('DOMContentLoaded', () => {
           amount: amount
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'So\'rovni yuborib bo\'lmadi');
-      if (data.notification_warning) {
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error((data && data.detail) || `Server xatosi (${res.status})`);
+      if (data && data.notification_warning) {
         showToast(data.notification_warning, 'warning');
       } else {
         showToast('Karta to\'ldirish so\'rovi muvaffaqiyatli yuborildi', 'success');
@@ -990,8 +998,8 @@ document.addEventListener('DOMContentLoaded', () => {
         credentials: 'same-origin',
         body: JSON.stringify({ amount: amount, note: note })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Topshirish amalga oshmadi');
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error((data && data.detail) || `Server xatosi (${res.status})`);
       showToast('Berilgan summa yuborildi va admin tasdig\'iga tushdi', 'success');
       document.getElementById('form-submit-giving').reset();
       await loadDashboard();
@@ -1072,9 +1080,9 @@ document.addEventListener('DOMContentLoaded', () => {
         credentials: 'same-origin',
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Hisobotni saqlab bo\'lmadi');
-      if (data.notification_warning) {
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error((data && data.detail) || `Server xatosi (${res.status})`);
+      if (data && data.notification_warning) {
         showToast(data.notification_warning, 'warning');
       } else {
         showToast('Kunlik hisobot topshirildi!', 'success');
@@ -1218,10 +1226,10 @@ async function decideItem(category, id, approved, reason = '') {
       credentials: 'same-origin',
       body: JSON.stringify({ approved: approved, reason: reason })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Qarorni saqlab bo\'lmadi');
+    const data = await parseJsonResponse(res);
+    if (!res.ok) throw new Error((data && data.detail) || `Server xatosi (${res.status})`);
     const msg = approved ? 'So\'rov tasdiqlandi ✅' : 'So\'rov rad etildi ❌';
-    if (data.notification_warning) {
+    if (data && data.notification_warning) {
       showToast(`${msg} (${data.notification_warning})`, 'warning');
     } else {
       showToast(msg, approved ? 'success' : 'info');

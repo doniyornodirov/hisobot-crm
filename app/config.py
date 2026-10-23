@@ -31,6 +31,36 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "admin123"
 
+    @field_validator("bot_token", mode="before")
+    @classmethod
+    def clean_bot_token(cls, value: object) -> object:
+        if isinstance(value, str):
+            clean = value.strip().strip('"').strip("'")
+            return SecretStr(clean)
+        elif isinstance(value, SecretStr):
+            clean = value.get_secret_value().strip().strip('"').strip("'")
+            return SecretStr(clean)
+        return value
+
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def clean_secret_key(cls, value: object) -> object:
+        if isinstance(value, str):
+            clean = value.strip().strip('"').strip("'")
+            return SecretStr(clean)
+        elif isinstance(value, SecretStr):
+            clean = value.get_secret_value().strip().strip('"').strip("'")
+            return SecretStr(clean)
+        return value
+
+    @field_validator("admin_group_id", "report_group_id", "superadmin_id", mode="before")
+    @classmethod
+    def clean_int_ids(cls, value: object) -> object:
+        if isinstance(value, str):
+            clean = value.strip().strip('"').strip("'")
+            return int(clean)
+        return value
+
     @field_validator("secret_key")
     @classmethod
     def validate_secret_key(cls, value: SecretStr) -> SecretStr:

@@ -5,12 +5,17 @@ from pathlib import Path
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field, field_validator
 
 from app.config import get_settings
+
+
+def _is_bot_configured(token: str) -> bool:
+    clean = token.strip().strip('"').strip("'")
+    return bool(clean and clean != "replace_with_telegram_bot_token" and ":" in clean)
 from app.bot import (
     card_decision_keyboard,
     card_notification_text,
@@ -82,6 +87,15 @@ async def cache_versioned_static_assets(request: Request, call_next):
     if request.method == "GET" and request.url.path.startswith("/static/") and request.query_params.get("v"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Kutilmagan server xatoligi: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Server xatoligi: {str(exc) or type(exc).__name__}"},
+    )
 
 
 class EmployeeCreate(BaseModel):
@@ -463,23 +477,28 @@ async def employee_create_card_request(
     saved_request = card_request(settings.employee_db_path, request_id)
     if saved_request is None:
         raise HTTPException(status_code=500, detail="Saqlangan karta so'rovi topilmadi")
-    try:
-        async with Bot(token=settings.bot_token.get_secret_value()) as bot:
-            sent_message = await bot.send_message(
-                chat_id=settings.admin_group_id,
-                text=card_notification_text(saved_request),
-                reply_markup=card_decision_keyboard(request_id, "pending"),
+
+    token = settings.bot_token.get_secret_value()
+    if _is_bot_configured(token):
+        try:
+            async with Bot(token=token.strip().strip('"').strip("'")) as bot:
+                sent_message = await bot.send_message(
+                    chat_id=settings.admin_group_id,
+                    text=card_notification_text(saved_request),
+                    reply_markup=card_decision_keyboard(request_id, "pending"),
+                )
+            save_card_notification(
+                settings.employee_db_path,
+                request_id,
+                settings.admin_group_id,
+                sent_message.message_id,
             )
-    except (TelegramAPIError, OSError, TimeoutError):
-        logger.exception("Karta so'rovi #%s saqlandi, ammo Telegram xabari yuborilmadi", request_id)
-        warning = "So'rov saqlandi, lekin admin guruhiga xabar yuborilmadi."
+        except Exception:
+            logger.exception("Karta so'rovi #%s saqlandi, ammo Telegram xabari yuborilmadi", request_id)
+            warning = "So'rov saqlandi, lekin Telegram guruhiga xabar yuborilmadi."
     else:
-        save_card_notification(
-            settings.employee_db_path,
-            request_id,
-            settings.admin_group_id,
-            sent_message.message_id,
-        )
+        logger.warning("BOT_TOKEN sozlanmagan, karta so'rovi #%s Telegramga yuborilmadi", request_id)
+        warning = "So'rov saqlandi, ammo Telegram bot tokeni sozlanmagani uchun guruhga xabar bormadi."
     result: dict[str, object] = {"id": request_id, "status": "pending"}
     if warning is not None:
         result["notification_warning"] = warning
@@ -529,42 +548,45 @@ async def employee_create_daily_report(
         raise HTTPException(status_code=500, detail="Saqlangan hisobot topilmadi")
 
     warnings: list[str] = []
-    async with Bot(token=settings.bot_token.get_secret_value()) as bot:
-        if (
-            previous_report is not None
-            and previous_report["notification_chat_id"] is not None
-            and previous_report["notification_message_id"] is not None
-        ):
-            try:
-                await bot.delete_message(
-                    chat_id=int(previous_report["notification_chat_id"]),
-                    message_id=int(previous_report["notification_message_id"]),
-                )
-            except (TelegramAPIError, OSError, TimeoutError):
-                logger.exception(
-                    "Hisobot #%s yangilandi, ammo guruhdagi eski xabar o'chirilmadi",
-                    previous_report["id"],
-                )
-                warnings.append("Guruhdagi eski hisobot xabari o'chirilmadi.")
-
+    token = settings.bot_token.get_secret_value()
+    if _is_bot_configured(token):
         try:
-            sent_message = await bot.send_message(
-                chat_id=settings.report_group_id,
-                text=report_notification_text(saved_report),
-            )
-        except (TelegramAPIError, OSError, TimeoutError):
+            async with Bot(token=token.strip().strip('"').strip("'")) as bot:
+                if (
+                    previous_report is not None
+                    and previous_report["notification_chat_id"] is not None
+                    and previous_report["notification_message_id"] is not None
+                ):
+                    try:
+                        await bot.delete_message(
+                            chat_id=int(previous_report["notification_chat_id"]),
+                            message_id=int(previous_report["notification_message_id"]),
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Hisobot #%s yangilandi, ammo guruhdagi eski xabar o'chirilmadi",
+                            previous_report["id"],
+                        )
+                        warnings.append("Guruhdagi eski hisobot xabari o'chirilmadi.")
+
+                sent_message = await bot.send_message(
+                    chat_id=settings.report_group_id,
+                    text=report_notification_text(saved_report),
+                )
+                save_report_notification(
+                    settings.employee_db_path,
+                    report_id,
+                    settings.report_group_id,
+                    sent_message.message_id,
+                )
+        except Exception:
             logger.exception(
                 "Hisobot #%s saqlandi, ammo hisobot guruhiga xabar yuborilmadi",
                 report_id,
             )
-            warnings.append("Hisobot saqlandi, lekin hisobot guruhiga xabar yuborilmadi.")
-        else:
-            save_report_notification(
-                settings.employee_db_path,
-                report_id,
-                settings.report_group_id,
-                sent_message.message_id,
-            )
+            warnings.append("Hisobot saqlandi, lekin Telegram hisobot guruhiga xabar yuborilmadi.")
+    else:
+        warnings.append("Hisobot saqlandi, ammo Telegram bot tokeni sozlanmagan.")
 
     result: dict[str, object] = {"id": report_id, "status": "pending"}
     if warnings:
@@ -633,17 +655,19 @@ async def admin_decide_card(record_id: int, payload: WorkflowDecision) -> dict[s
     updated_record = card_request(settings.employee_db_path, record_id)
     result: dict[str, str] = {"status": decision}
     if updated_record is not None and updated_record["notification_message_id"] is not None:
-        try:
-            async with Bot(token=settings.bot_token.get_secret_value()) as bot:
-                await bot.edit_message_text(
-                    chat_id=int(updated_record["notification_chat_id"]),
-                    message_id=int(updated_record["notification_message_id"]),
-                    text=card_notification_text(updated_record),
-                    reply_markup=card_decision_keyboard(record_id, decision),
-                )
-        except (TelegramAPIError, OSError, TimeoutError):
-            logger.exception("Karta so'rovi #%s qarori saqlandi, ammo guruh xabari yangilanmadi", record_id)
-            result["notification_warning"] = "Qaror saqlandi, lekin guruh xabari yangilanmadi."
+        token = settings.bot_token.get_secret_value()
+        if _is_bot_configured(token):
+            try:
+                async with Bot(token=token.strip().strip('"').strip("'")) as bot:
+                    await bot.edit_message_text(
+                        chat_id=int(updated_record["notification_chat_id"]),
+                        message_id=int(updated_record["notification_message_id"]),
+                        text=card_notification_text(updated_record),
+                        reply_markup=card_decision_keyboard(record_id, decision),
+                    )
+            except Exception:
+                logger.exception("Karta so'rovi #%s qarori saqlandi, ammo guruh xabari yangilanmadi", record_id)
+                result["notification_warning"] = "Qaror saqlandi, lekin guruh xabari yangilanmadi."
     return result
 
 
